@@ -1,0 +1,148 @@
+name: Workflow Health Monitor
+
+on:
+  schedule:
+    # Run every hour
+    - cron: '0 * * * *'
+  workflow_dispatch:  # Allow manual triggering
+
+permissions:
+  actions: read
+  issues: write
+
+jobs:
+  monitor:
+    name: Monitor Workflow Health
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Check Workflow Runs
+        id: check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            
+            // Get recent workflow runs
+            const { data: runs } = await github.rest.actions.listWorkflowRunsForRepo({
+              owner,
+              repo,
+              per_page: 50
+            });
+            
+            // Analyze runs
+            const skippedRuns = runs.workflow_runs.filter(r => r.conclusion === 'skipped');
+            const failedRuns = runs.workflow_runs.filter(r => r.conclusion === 'failure');
+            const stuckRuns = runs.workflow_runs.filter(r => {
+              if (r.status !== 'in_progress') return false;
+              const startTime = new Date(r.created_at);
+              const now = new Date();
+              const hoursSinceStart = (now - startTime) / (1000 * 60 * 60);
+              return hoursSinceStart > 1; // Stuck if running for >1 hour
+            });
+            
+            // Build report
+            let report = '## 🏥 Workflow Health Report\n\n';
+            report += `**Generated:** ${new Date().toISOString()}\n\n`;
+            
+            let hasIssues = false;
+            
+            if (skippedRuns.length > 0) {
+              hasIssues = true;
+              report += '### ⚠️ Skipped Workflow Runs\n\n';
+              report += `**Count:** ${skippedRuns.length}\n\n`;
+              report += 'Skipped runs indicate that a workflow was triggered but did not execute. This often means:\n';
+              report += '- A missing state transition in the state machine\n';
+              report += '- An incorrect `if` condition in the workflow\n\n';
+              report += '**Recent Skipped Runs:**\n\n';
+              skippedRuns.slice(0, 5).forEach(run => {
+                report += `- [${run.name} #${run.run_number}](${run.html_url}) - ${run.created_at}\n`;
+              });
+              report += '\n';
+            }
+            
+            if (failedRuns.length > 0) {
+              hasIssues = true;
+              report += '### ❌ Failed Workflow Runs\n\n';
+              report += `**Count:** ${failedRuns.length}\n\n`;
+              report += '**Recent Failed Runs:**\n\n';
+              failedRuns.slice(0, 5).forEach(run => {
+                report += `- [${run.name} #${run.run_number}](${run.html_url}) - ${run.created_at}\n`;
+              });
+              report += '\n';
+            }
+            
+            if (stuckRuns.length > 0) {
+              hasIssues = true;
+              report += '### 🔄 Stuck Workflow Runs\n\n';
+              report += `**Count:** ${stuckRuns.length}\n\n`;
+              report += 'These workflows have been running for more than 1 hour and may be stuck.\n\n';
+              stuckRuns.forEach(run => {
+                report += `- [${run.name} #${run.run_number}](${run.html_url}) - Started ${run.created_at}\n`;
+              });
+              report += '\n';
+            }
+            
+            if (!hasIssues) {
+              report += '### ✅ All Systems Healthy\n\n';
+              report += 'No workflow issues detected in the last 50 runs.\n\n';
+            }
+            
+            // Add recommendations
+            if (hasIssues) {
+              report += '### 📋 Recommended Actions\n\n';
+              if (skippedRuns.length > 0) {
+                report += '1. **Review skipped runs:** Check the state machine workflow for missing transitions.\n';
+              }
+              if (failedRuns.length > 0) {
+                report += '2. **Investigate failures:** Click on failed runs to view logs and error messages.\n';
+              }
+              if (stuckRuns.length > 0) {
+                report += '3. **Cancel stuck runs:** Manually cancel runs that are stuck and investigate the cause.\n';
+              }
+              report += '\n';
+              report += 'See [Workflow Health Documentation](../docs/WORKFLOW_HEALTH.md) for troubleshooting guidance.\n';
+            }
+            
+            console.log(report);
+            core.setOutput('report', report);
+            core.setOutput('has_issues', hasIssues);
+            
+            return { hasIssues, skippedCount: skippedRuns.length, failedCount: failedRuns.length, stuckCount: stuckRuns.length };
+      
+      - name: Create Issue if Problems Found
+        if: steps.check.outputs.has_issues == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const report = `${{ steps.check.outputs.report }}`;
+            
+            // Check if there's already an open health report issue
+            const { data: existingIssues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'workflow-health,automated'
+            });
+            
+            if (existingIssues.length > 0) {
+              // Update existing issue
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existingIssues[0].number,
+                body: report
+              });
+              console.log(`Updated existing health report issue #${existingIssues[0].number}`);
+            } else {
+              // Create new issue
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: '🏥 Workflow Health Alert',
+                body: report,
+                labels: ['workflow-health', 'automated', 'priority: high']
+              });
+              console.log('Created new health report issue');
+            }
