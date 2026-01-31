@@ -124,6 +124,15 @@ jobs:
                   to: 'state: implementing',
                   assignToActor: true
                 },
+                'testing': {
+                  from: ['state: implementing'],
+                  to: 'state: testing',
+                  requiresAssignedToActor: true
+                },
+                'failed-testing': {
+                  from: ['state: testing'],
+                  to: 'state: failed-testing'
+                },
                 'verification': {
                   from: ['state: testing'],
                   to: 'state: verification'
