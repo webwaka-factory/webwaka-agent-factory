@@ -1,0 +1,117 @@
+name: Analysis & Report Task
+description: A task that requires analysis and a written report
+title: "[ANALYSIS] "
+labels: ["type: chore", "state: discovered"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Analysis & Report Task
+        Use this template for tasks that require investigation, analysis, or documentation.
+
+  - type: input
+    id: title
+    attributes:
+      label: Task Title
+      description: A clear, concise title for this task
+      placeholder: "e.g., Validate mobile-first and offline-first behaviors"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: deliverable_type
+    attributes:
+      label: Deliverable Type
+      description: What type of deliverable is expected?
+      options:
+        - Analysis Report (Markdown)
+      default: 0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How urgent is this task?
+      options:
+        - Critical
+        - High
+        - Medium
+        - Low
+      default: 2
+    validations:
+      required: true
+
+  - type: dropdown
+    id: domain
+    attributes:
+      label: Domain
+      description: Which domain does this task belong to?
+      options:
+        - Core Services
+        - Platform Foundation
+        - Infrastructure
+        - Capabilities
+        - Suites
+        - Governance
+      default: 0
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Detailed description of what needs to be analyzed or documented
+      placeholder: "Describe the analysis scope, research questions, or documentation needs..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: analysis_scope
+    attributes:
+      label: Analysis Scope
+      description: What should be investigated or documented?
+      placeholder: |
+        - Area 1 to investigate
+        - Area 2 to investigate
+        - Area 3 to document
+    validations:
+      required: true
+
+  - type: textarea
+    id: deliverable_format
+    attributes:
+      label: Deliverable Format
+      description: What should the final report include?
+      placeholder: |
+        The report should include:
+        - Executive summary
+        - Detailed findings
+        - Recommendations
+        - Supporting data/evidence
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Acceptance Criteria
+      description: What must be true for this task to be considered complete?
+      placeholder: |
+        - [ ] Report is comprehensive and well-structured
+        - [ ] All analysis areas are covered
+        - [ ] Recommendations are actionable
+        - [ ] Supporting evidence is provided
+    validations:
+      required: true
+
+  - type: textarea
+    id: related_issues
+    attributes:
+      label: Related Issues
+      description: Links to related issues or PRs
+      placeholder: "#123, #456"
+    validations:
+      required: false

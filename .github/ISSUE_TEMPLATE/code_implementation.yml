@@ -1,0 +1,99 @@
+name: Code Implementation Task
+description: A task that requires code implementation
+title: "[IMPL] "
+labels: ["type: feature", "state: discovered"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Code Implementation Task
+        Use this template for tasks that require writing or modifying code.
+
+  - type: input
+    id: title
+    attributes:
+      label: Task Title
+      description: A clear, concise title for this task
+      placeholder: "e.g., Implement CS-3 IAM Test Suite"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: deliverable_type
+    attributes:
+      label: Deliverable Type
+      description: What type of deliverable is expected?
+      options:
+        - Code Implementation
+      default: 0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How urgent is this task?
+      options:
+        - Critical
+        - High
+        - Medium
+        - Low
+      default: 2
+    validations:
+      required: true
+
+  - type: dropdown
+    id: domain
+    attributes:
+      label: Domain
+      description: Which domain does this task belong to?
+      options:
+        - Core Services
+        - Platform Foundation
+        - Infrastructure
+        - Capabilities
+        - Suites
+        - Governance
+      default: 0
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Detailed description of what needs to be implemented
+      placeholder: "Describe the feature, bug fix, or improvement in detail..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Acceptance Criteria
+      description: What must be true for this task to be considered complete?
+      placeholder: |
+        - [ ] Criterion 1
+        - [ ] Criterion 2
+        - [ ] Criterion 3
+    validations:
+      required: true
+
+  - type: textarea
+    id: technical_notes
+    attributes:
+      label: Technical Notes
+      description: Any technical details, constraints, or considerations
+      placeholder: "Implementation approach, dependencies, constraints..."
+    validations:
+      required: false
+
+  - type: textarea
+    id: related_issues
+    attributes:
+      label: Related Issues
+      description: Links to related issues or PRs
+      placeholder: "#123, #456"
+    validations:
+      required: false

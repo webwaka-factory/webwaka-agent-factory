@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Factory Documentation
+    url: https://github.com/webwakaagent1/webwaka-governance
+    about: View governance and factory documentation
+  - name: State Machine Reference
+    url: https://github.com/webwakaagent1/webwaka-governance/blob/main/docs/STATE_MACHINE.md
+    about: View the complete state machine documentation
