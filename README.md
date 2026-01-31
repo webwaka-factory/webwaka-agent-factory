@@ -101,25 +101,14 @@ The CI pipeline enforces a strict "no fallback" policy. Test failures block depl
 webwaka-agent-factory/
 ├── .github/
 │   ├── ISSUE_TEMPLATE/          # Standardized issue templates
-│   │   ├── bug_report.yml
-│   │   ├── feature_request.yml
-│   │   └── chore.yml
 │   └── workflows/               # GitHub Actions automation
 │       ├── ci.yml               # CI pipeline (strict, no fallbacks)
 │       ├── state_machine.yml    # Core state transition logic
-│       ├── duplicate_check.yml  # Duplicate detection
-│       ├── pr_linking.yml       # PR-to-issue linking
-│       └── daily_report.yml     # Automated reporting
+│       └── ...
 ├── docs/
-│   ├── onboarding/
-│   │   ├── AGENT_ONBOARDING.md  # Complete agent guide
-│   │   └── FOUNDER_GUIDE.md     # Founder control guide
-│   ├── ARCHITECTURE.md          # System architecture
 │   ├── STATE_MACHINE.md         # State machine specification
-│   ├── SLASH_COMMANDS.md        # Command reference
-│   └── CI_NO_FALLBACK_POLICY.md # CI/CD strict policy
-├── scripts/
-│   └── report_generator.py      # Daily report generation
+│   ├── WORKFLOW_HEALTH.md       # Workflow health monitoring guide
+│   └── ...
 └── README.md                    # This file
 ```
 
