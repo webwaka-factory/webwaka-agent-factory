@@ -1,0 +1,101 @@
+name: Log Agent Activity
+
+on:
+  issues:
+    types: [assigned, unassigned, labeled, closed]
+  issue_comment:
+    types: [created]
+  pull_request:
+    types: [opened, closed]
+
+permissions:
+  contents: write
+  issues: read
+  pull-requests: read
+
+jobs:
+  log:
+    name: Log Activity
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Log Issue Assignment
+        if: github.event_name == 'issues' && github.event.action == 'assigned'
+        run: |
+          python3 scripts/log_agent_activity.py \
+            claim \
+            ${{ github.event.issue.number }} \
+            ${{ github.event.assignee.login }} \
+            "Issue assigned"
+      
+      - name: Log Issue Unassignment
+        if: github.event_name == 'issues' && github.event.action == 'unassigned'
+        run: |
+          python3 scripts/log_agent_activity.py \
+            abandon \
+            ${{ github.event.issue.number }} \
+            ${{ github.event.assignee.login }} \
+            "Issue unassigned"
+      
+      - name: Log State Change
+        if: github.event_name == 'issues' && github.event.action == 'labeled' && startsWith(github.event.label.name, 'state:')
+        run: |
+          python3 scripts/log_agent_activity.py \
+            state_change \
+            ${{ github.event.issue.number }} \
+            "${{ github.event.sender.login }}" \
+            "Label added: ${{ github.event.label.name }}"
+      
+      - name: Log Issue Closure
+        if: github.event_name == 'issues' && github.event.action == 'closed'
+        run: |
+          python3 scripts/log_agent_activity.py \
+            issue_closed \
+            ${{ github.event.issue.number }} \
+            "${{ github.event.sender.login }}" \
+            "Issue closed"
+      
+      - name: Log Slash Command
+        if: github.event_name == 'issue_comment' && startsWith(github.event.comment.body, '/')
+        run: |
+          python3 scripts/log_agent_activity.py \
+            comment \
+            ${{ github.event.issue.number }} \
+            ${{ github.event.comment.user.login }} \
+            "Command: ${{ github.event.comment.body }}"
+      
+      - name: Log PR Creation
+        if: github.event_name == 'pull_request' && github.event.action == 'opened'
+        run: |
+          python3 scripts/log_agent_activity.py \
+            pr_created \
+            ${{ github.event.pull_request.number }} \
+            ${{ github.event.pull_request.user.login }} \
+            "PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}"
+      
+      - name: Log PR Merge
+        if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
+        run: |
+          python3 scripts/log_agent_activity.py \
+            pr_merged \
+            ${{ github.event.pull_request.number }} \
+            ${{ github.event.pull_request.merged_by.login }} \
+            "PR #${{ github.event.pull_request.number }} merged"
+      
+      - name: Commit Log File
+        run: |
+          git config user.name "Factory Logger"
+          git config user.email "factory@webwaka.com"
+          git add logs/activity_log.jsonl
+          git diff --staged --quiet || git commit -m "chore: Update activity log"
+          git push
