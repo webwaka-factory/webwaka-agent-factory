@@ -1,0 +1,128 @@
+name: 🔧 Chore / Maintenance
+description: Propose maintenance work, refactoring, or technical debt reduction
+title: "[CHORE] "
+labels: ["type: chore", "state: discovered"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Chore / Maintenance Template
+        
+        Use this template for maintenance work, refactoring, documentation updates, or technical debt reduction.
+
+  - type: textarea
+    id: objective
+    attributes:
+      label: Objective
+      description: What needs to be done and why?
+      placeholder: "Example: Refactor the authentication middleware to reduce code duplication and improve maintainability."
+    validations:
+      required: true
+
+  - type: textarea
+    id: current_state
+    attributes:
+      label: Current State
+      description: What is the current situation that needs improvement?
+      placeholder: |
+        The authentication logic is duplicated across 5 different middleware files, making updates error-prone.
+    validations:
+      required: true
+
+  - type: textarea
+    id: desired_state
+    attributes:
+      label: Desired State
+      description: What should the end result look like?
+      placeholder: |
+        A single, reusable authentication middleware module that can be imported by all services.
+    validations:
+      required: true
+
+  - type: textarea
+    id: affected_modules
+    attributes:
+      label: Affected Files/Modules
+      description: List the specific files, modules, or components that will be modified.
+      placeholder: |
+        - packages/core-services/iam/src/middleware/auth.ts
+        - packages/suites/commerce/src/middleware/auth.ts
+        - packages/suites/mlas/src/middleware/auth.ts
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: What is explicitly IN SCOPE for this chore?
+      placeholder: |
+        - Consolidate authentication logic into a single module
+        - Update all imports to use the new module
+        - Add unit tests for the new module
+    validations:
+      required: true
+
+  - type: textarea
+    id: non_goals
+    attributes:
+      label: Non-Goals
+      description: What is explicitly OUT OF SCOPE?
+      placeholder: |
+        - This will NOT change the authentication logic itself
+        - This will NOT add new authentication methods
+    validations:
+      required: true
+
+  - type: textarea
+    id: success_criteria
+    attributes:
+      label: Success Criteria
+      description: How will we verify this chore is complete?
+      placeholder: |
+        - All authentication middleware uses the shared module
+        - All existing tests pass
+        - Code coverage remains above 80%
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Suggested Priority
+      description: What priority do you think this chore should have?
+      options:
+        - critical
+        - high
+        - medium
+        - low
+    validations:
+      required: true
+
+  - type: dropdown
+    id: domain
+    attributes:
+      label: Domain
+      description: Which domain does this chore belong to?
+      options:
+        - governance
+        - platform-foundation
+        - core-services
+        - capabilities
+        - infrastructure
+        - suites
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      description: Please confirm you have completed these steps
+      options:
+        - label: I have searched for duplicate chores/issues
+          required: true
+        - label: I have provided all required information
+          required: true
+        - label: I have clearly defined scope and non-goals
+          required: true

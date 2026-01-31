@@ -1,0 +1,127 @@
+name: ✨ Feature Request
+description: Propose a new feature or capability for the WebWaka platform
+title: "[FEATURE] "
+labels: ["type: feature", "state: discovered"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Feature Request Template
+        
+        Please provide detailed information about the proposed feature. This will be refined by the Task Intelligence Layer.
+
+  - type: textarea
+    id: problem_statement
+    attributes:
+      label: Problem Statement
+      description: What problem does this feature solve? What is the user need?
+      placeholder: "Example: Partners need the ability to configure custom pricing tiers for their tenants without WebWaka intervention."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed_solution
+    attributes:
+      label: Proposed Solution
+      description: A clear description of how you envision this feature working.
+      placeholder: |
+        Add a new Partner Portal UI that allows partners to:
+        - Define custom pricing tiers
+        - Set tier limits and features
+        - Assign tenants to tiers
+    validations:
+      required: true
+
+  - type: textarea
+    id: non_goals
+    attributes:
+      label: Non-Goals
+      description: What is explicitly OUT OF SCOPE for this feature?
+      placeholder: |
+        - This feature will NOT allow partners to set prices below platform minimums
+        - This feature will NOT include automated billing integration (separate feature)
+    validations:
+      required: true
+
+  - type: textarea
+    id: success_criteria
+    attributes:
+      label: Success Criteria
+      description: How will we know this feature is working correctly?
+      placeholder: |
+        - Partners can create at least 5 custom pricing tiers
+        - Tenants see the correct pricing based on their assigned tier
+        - All pricing changes are audited in the system logs
+    validations:
+      required: true
+
+  - type: textarea
+    id: affected_modules
+    attributes:
+      label: Affected Modules/Components
+      description: Which parts of the system will this feature touch?
+      placeholder: |
+        - Partner Portal (new UI)
+        - Core Services: IAM (permissions)
+        - Core Services: Pricing Engine (new tier logic)
+        - Infrastructure: Database (new tables)
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: What other features, systems, or tasks must be complete before this can be implemented?
+      placeholder: |
+        - Requires completion of PF-3 (Partner Portal Foundation)
+        - Requires IAM partner-level permissions (CS-3)
+
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints
+      description: Any specific constraints to consider (security, performance, compatibility, etc.)
+      placeholder: |
+        - Must respect INV-001 (Pricing Flexibility)
+        - Must maintain strict tenant isolation (INV-002)
+        - Must be auditable (INV-003)
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Suggested Priority
+      description: What priority do you think this feature should have?
+      options:
+        - critical
+        - high
+        - medium
+        - low
+    validations:
+      required: true
+
+  - type: dropdown
+    id: domain
+    attributes:
+      label: Domain
+      description: Which domain does this feature belong to?
+      options:
+        - governance
+        - platform-foundation
+        - core-services
+        - capabilities
+        - infrastructure
+        - suites
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      description: Please confirm you have completed these steps
+      options:
+        - label: I have searched for duplicate feature requests
+          required: true
+        - label: I have provided all required information
+          required: true
+        - label: I have checked this feature against platform invariants
+          required: true

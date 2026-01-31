@@ -1,0 +1,138 @@
+name: 🐛 Bug Report
+description: Report a bug or defect in the WebWaka platform
+title: "[BUG] "
+labels: ["type: bug", "state: discovered"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Bug Report Template
+        
+        Please provide detailed information about the bug. This will help the Task Intelligence Layer refine this into an executable task.
+
+  - type: textarea
+    id: problem_statement
+    attributes:
+      label: Problem Statement
+      description: A clear and concise description of what the bug is.
+      placeholder: "Example: The IAM authentication fails when using partner-level API keys in the Commerce Suite."
+    validations:
+      required: true
+
+  - type: textarea
+    id: affected_modules
+    attributes:
+      label: Affected Files/Modules
+      description: List the specific files, modules, or components affected by this bug.
+      placeholder: |
+        - packages/core-services/iam/src/auth.ts
+        - packages/suites/commerce/src/api/middleware.ts
+    validations:
+      required: true
+
+  - type: textarea
+    id: related_links
+    attributes:
+      label: Related Links
+      description: Links to relevant PRs, commits, documentation, or other issues.
+      placeholder: |
+        - PR #123
+        - Commit abc123
+        - Related issue #456
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs/Error Messages
+      description: Paste any relevant logs or error messages.
+      render: shell
+      placeholder: |
+        Error: Authentication failed
+        at AuthService.verify (auth.ts:45)
+
+  - type: textarea
+    id: steps_to_reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: Detailed steps to trigger the bug.
+      placeholder: |
+        1. Create a partner-level API key
+        2. Attempt to authenticate to Commerce Suite API
+        3. Observe authentication failure
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_outcome
+    attributes:
+      label: Expected Outcome
+      description: What should happen instead?
+      placeholder: "Authentication should succeed and return a valid session token."
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual_outcome
+    attributes:
+      label: Actual Outcome
+      description: What actually happens?
+      placeholder: "Authentication fails with error 'Invalid API key scope'."
+    validations:
+      required: true
+
+  - type: textarea
+    id: root_cause
+    attributes:
+      label: Root Cause (if known)
+      description: If you have already identified the root cause, describe it here.
+      placeholder: "The middleware is checking for tenant-level scope but partner keys have different scope structure."
+
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints
+      description: Any specific constraints to consider (security, performance, compatibility, etc.)
+      placeholder: |
+        - Must maintain backward compatibility with existing tenant keys
+        - Security: Must not expose partner-level data to tenant-level requests
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Suggested Priority
+      description: What priority do you think this bug should have?
+      options:
+        - critical
+        - high
+        - medium
+        - low
+    validations:
+      required: true
+
+  - type: dropdown
+    id: domain
+    attributes:
+      label: Domain
+      description: Which domain does this bug belong to?
+      options:
+        - governance
+        - platform-foundation
+        - core-services
+        - capabilities
+        - infrastructure
+        - suites
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      description: Please confirm you have completed these steps
+      options:
+        - label: I have searched for duplicate issues
+          required: true
+        - label: I have provided all required information
+          required: true
+        - label: I have linked related issues/PRs if applicable
+          required: true

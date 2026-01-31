@@ -1,0 +1,251 @@
+name: Daily Status Report
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Run daily at midnight UTC
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  generate_report:
+    name: Generate Daily Status Report
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Generate Report
+        id: report
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const today = new Date().toISOString().split('T')[0];
+            
+            // Fetch all open issues
+            const openIssues = await github.paginate(github.rest.issues.listForRepo, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100
+            });
+            
+            // Filter out PRs and report issues
+            const issues = openIssues.filter(i => 
+              !i.pull_request && 
+              !i.labels.some(l => l.name === 'report')
+            );
+            
+            // Categorize by state
+            const byState = {};
+            const byAssignee = {};
+            const byPriority = {};
+            
+            for (const issue of issues) {
+              const stateLabel = issue.labels.find(l => l.name.startsWith('state:'));
+              const state = stateLabel ? stateLabel.name : 'unknown';
+              
+              const priorityLabel = issue.labels.find(l => l.name.startsWith('priority:'));
+              const priority = priorityLabel ? priorityLabel.name : 'priority: medium';
+              
+              // By state
+              if (!byState[state]) byState[state] = [];
+              byState[state].push(issue);
+              
+              // By assignee
+              if (issue.assignee) {
+                const assignee = issue.assignee.login;
+                if (!byAssignee[assignee]) byAssignee[assignee] = [];
+                byAssignee[assignee].push(issue);
+              }
+              
+              // By priority
+              if (!byPriority[priority]) byPriority[priority] = [];
+              byPriority[priority].push(issue);
+            }
+            
+            // Build report
+            let report = `# 📊 Daily Agent Factory Status Report\n\n`;
+            report += `**Date:** ${today}\n`;
+            report += `**Total Open Issues:** ${issues.length}\n\n`;
+            report += `---\n\n`;
+            
+            // Summary by state
+            report += `## 📈 Issues by State\n\n`;
+            report += `| State | Count | Issues |\n`;
+            report += `|-------|-------|--------|\n`;
+            
+            const stateOrder = [
+              'state: discovered',
+              'state: triaged',
+              'state: needs-brainstorming',
+              'state: brainstorming',
+              'state: needs-founder-clarification',
+              'state: awaiting-founder-decision',
+              'state: ready-for-implementation',
+              'state: implementing',
+              'state: blocked',
+              'state: stopped-working',
+              'state: implemented',
+              'state: testing',
+              'state: failed-testing',
+              'state: verification',
+              'state: needs-rework'
+            ];
+            
+            for (const state of stateOrder) {
+              const stateIssues = byState[state] || [];
+              if (stateIssues.length > 0) {
+                const issueLinks = stateIssues.map(i => `#${i.number}`).join(', ');
+                report += `| \`${state}\` | ${stateIssues.length} | ${issueLinks} |\n`;
+              }
+            }
+            
+            report += `\n---\n\n`;
+            
+            // Who is working on what?
+            report += `## 👥 Active Agents\n\n`;
+            if (Object.keys(byAssignee).length > 0) {
+              report += `| Agent | Tasks | Issues |\n`;
+              report += `|-------|-------|--------|\n`;
+              
+              for (const [assignee, assignedIssues] of Object.entries(byAssignee)) {
+                const issueLinks = assignedIssues.map(i => `#${i.number}`).join(', ');
+                report += `| @${assignee} | ${assignedIssues.length} | ${issueLinks} |\n`;
+              }
+            } else {
+              report += `*No agents currently assigned to tasks.*\n`;
+            }
+            
+            report += `\n---\n\n`;
+            
+            // Blocked tasks
+            const blockedIssues = byState['state: blocked'] || [];
+            report += `## 🚧 Blocked Tasks\n\n`;
+            if (blockedIssues.length > 0) {
+              for (const issue of blockedIssues) {
+                report += `- **#${issue.number}**: ${issue.title}\n`;
+                report += `  - **Assignee:** @${issue.assignee?.login || 'unassigned'}\n`;
+                
+                // Get last comment
+                const comments = await github.rest.issues.listComments({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  per_page: 1,
+                  sort: 'created',
+                  direction: 'desc'
+                });
+                
+                if (comments.data.length > 0) {
+                  const lastComment = comments.data[0].body.substring(0, 150);
+                  report += `  - **Last Update:** ${lastComment}...\n`;
+                }
+                report += `\n`;
+              }
+            } else {
+              report += `*No blocked tasks. Great!*\n`;
+            }
+            
+            report += `\n---\n\n`;
+            
+            // Awaiting Founder
+            const awaitingFounder = byState['state: awaiting-founder-decision'] || [];
+            report += `## 👑 Awaiting Founder Decision\n\n`;
+            if (awaitingFounder.length > 0) {
+              for (const issue of awaitingFounder) {
+                report += `- **#${issue.number}**: ${issue.title} - [View](${issue.html_url})\n`;
+              }
+            } else {
+              report += `*No tasks awaiting Founder decision.*\n`;
+            }
+            
+            report += `\n---\n\n`;
+            
+            // Failed tests
+            const failedTests = byState['state: failed-testing'] || [];
+            report += `## ❌ Failed Tests (Needs Rework)\n\n`;
+            if (failedTests.length > 0) {
+              for (const issue of failedTests) {
+                report += `- **#${issue.number}**: ${issue.title} - [View](${issue.html_url})\n`;
+              }
+            } else {
+              report += `*No failed tests. Excellent!*\n`;
+            }
+            
+            report += `\n---\n\n`;
+            
+            // Priority breakdown
+            report += `## 🎯 Priority Breakdown\n\n`;
+            report += `| Priority | Count |\n`;
+            report += `|----------|-------|\n`;
+            
+            const priorityOrder = [
+              'priority: critical',
+              'priority: high',
+              'priority: medium',
+              'priority: low'
+            ];
+            
+            for (const priority of priorityOrder) {
+              const count = (byPriority[priority] || []).length;
+              report += `| \`${priority}\` | ${count} |\n`;
+            }
+            
+            report += `\n---\n\n`;
+            report += `*This report is automatically generated daily. Last updated: ${new Date().toISOString()}*\n`;
+            
+            return report;
+
+      - name: Find or Create Report Issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const report = ${{ steps.report.outputs.result }};
+            const today = new Date().toISOString().split('T')[0];
+            const title = `📊 Daily Status Report - ${today}`;
+            
+            // Search for existing report issue for today
+            const existingIssues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: 'report',
+              state: 'open',
+              per_page: 10
+            });
+            
+            const todayReport = existingIssues.data.find(i => i.title === title);
+            
+            if (todayReport) {
+              // Update existing report
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: todayReport.number,
+                body: report
+              });
+              
+              console.log(`Updated existing report: #${todayReport.number}`);
+            } else {
+              // Create new report
+              const newIssue = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: report,
+                labels: ['report']
+              });
+              
+              console.log(`Created new report: #${newIssue.data.number}`);
+              
+              // Close yesterday's report if it exists
+              const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+              const yesterdayTitle = `📊 Daily Status Report - ${yesterday}`;
+              const yesterdayReport = existingIssues.data.find(i => i.title === yesterdayTitle);
+              
+              if (yesterdayReport) {
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: yesterdayReport.number,
+                  state: 'closed'
+                });
+                console.log(`Closed yesterday's report: #${yesterdayReport.number}`);
+              }
+            }
