@@ -6,6 +6,10 @@ on:
   issues:
     types: [labeled]
 
+permissions:
+  issues: write
+  contents: read
+
 jobs:
   handle_slash_command:
     name: Handle Slash Commands
