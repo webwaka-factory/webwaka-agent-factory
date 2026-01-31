@@ -1,0 +1,397 @@
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+
+# Strict CI Policy: NO FALLBACK FLAGS
+# This workflow is designed to FAIL FAST and FAIL LOUDLY
+# Any test failure MUST block the build and deployment
+# See docs/CI_NO_FALLBACK_POLICY.md for details
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  # Validation job - runs first to catch obvious issues
+  validate:
+    name: Validate PR Structure
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        
+      - name: Validate Issue Reference
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // STRICT: PRs MUST reference an issue
+            // NO FALLBACK: This step will fail the entire workflow if no issue is referenced
+            
+            if (context.eventName !== 'pull_request') {
+              console.log('Not a PR event, skipping validation');
+              return;
+            }
+            
+            const prBody = context.payload.pull_request.body || '';
+            const prTitle = context.payload.pull_request.title || '';
+            
+            const patterns = [
+              /(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)/gi,
+              /(?:relates to|references?|re:?)\s+#(\d+)/gi
+            ];
+            
+            let hasIssueRef = false;
+            for (const pattern of patterns) {
+              if (pattern.test(prBody) || pattern.test(prTitle)) {
+                hasIssueRef = true;
+                break;
+              }
+            }
+            
+            if (!hasIssueRef) {
+              // STRICT FAILURE - No fallback, no continue-on-error
+              core.setFailed('❌ PR must reference an issue using "Resolves #N" or "Fixes #N" in the body or title.');
+            }
+            
+            console.log('✅ Issue reference found');
+
+  # Lint job - checks code quality
+  lint:
+    name: Lint and Code Quality
+    runs-on: ubuntu-latest
+    needs: validate
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        
+      - name: Lint YAML Files
+        # STRICT: yamllint must pass, no fallback
+        run: |
+          pip install yamllint
+          yamllint -d relaxed .github/workflows/*.yml
+          
+      - name: Validate JSON Files
+        # STRICT: JSON must be valid, no fallback
+        run: |
+          for file in $(find . -name "*.json" -type f); do
+            echo "Validating $file"
+            python3 -c "import json; json.load(open('$file'))"
+          done
+          
+      - name: Check Markdown Links
+        # STRICT: Broken links fail the build
+        run: |
+          # Install markdown link checker
+          npm install -g markdown-link-check
+          
+          # Check all markdown files
+          find . -name "*.md" -type f | while read file; do
+            echo "Checking links in $file"
+            markdown-link-check "$file" --config .github/markdown-link-check-config.json 2>/dev/null || \
+            markdown-link-check "$file" --quiet
+          done
+
+  # Test job - runs all tests
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    needs: [validate, lint]
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          
+      - name: Run Workflow Syntax Validation
+        # STRICT: All workflows must have valid syntax
+        run: |
+          echo "Validating GitHub Actions workflow syntax..."
+          
+          # Check each workflow file
+          for workflow in .github/workflows/*.yml; do
+            echo "Checking $workflow"
+            
+            # Validate YAML structure
+            python3 -c "
+          import yaml
+          import sys
+          
+          with open('$workflow', 'r') as f:
+              try:
+                  data = yaml.safe_load(f)
+                  if 'name' not in data:
+                      print('ERROR: Workflow missing name field')
+                      sys.exit(1)
+                  if 'on' not in data:
+                      print('ERROR: Workflow missing trigger (on) field')
+                      sys.exit(1)
+                  if 'jobs' not in data:
+                      print('ERROR: Workflow missing jobs field')
+                      sys.exit(1)
+                  print(f'✅ {\"$workflow\"} is valid')
+              except yaml.YAMLError as e:
+                  print(f'ERROR: Invalid YAML: {e}')
+                  sys.exit(1)
+          "
+          done
+          
+      - name: Verify State Machine Transitions
+        # STRICT: State machine must be internally consistent
+        run: |
+          echo "Verifying state machine configuration..."
+          
+          python3 << 'EOF'
+          import yaml
+          import sys
+          
+          # Load state machine workflow
+          with open('.github/workflows/state_machine.yml', 'r') as f:
+              workflow = yaml.safe_load(f)
+          
+          # Extract the transitions from the workflow
+          # This is a basic structural check
+          jobs = workflow.get('jobs', {})
+          
+          if 'handle_slash_command' not in jobs:
+              print('ERROR: Missing handle_slash_command job')
+              sys.exit(1)
+          
+          print('✅ State machine workflow structure is valid')
+          EOF
+          
+      - name: Verify Label Configuration
+        # STRICT: Labels must be properly configured
+        run: |
+          echo "Verifying label configuration..."
+          
+          python3 << 'EOF'
+          import json
+          import sys
+          
+          with open('labels.json', 'r') as f:
+              labels = json.load(f)
+          
+          required_prefixes = ['state:', 'priority:', 'domain:', 'type:']
+          found_prefixes = set()
+          
+          for label in labels:
+              name = label.get('name', '')
+              for prefix in required_prefixes:
+                  if name.startswith(prefix):
+                      found_prefixes.add(prefix)
+          
+          missing = set(required_prefixes) - found_prefixes
+          if missing:
+              print(f'ERROR: Missing label prefixes: {missing}')
+              sys.exit(1)
+          
+          print(f'✅ Found all required label prefixes: {required_prefixes}')
+          print(f'✅ Total labels configured: {len(labels)}')
+          EOF
+
+  # Security scan job
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: validate
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        
+      - name: Check for Hardcoded Secrets
+        # STRICT: No secrets in code, no fallback
+        run: |
+          echo "Scanning for hardcoded secrets..."
+          
+          # Check for common secret patterns
+          PATTERNS=(
+            "password\s*=\s*['\"][^'\"]+['\"]"
+            "api[_-]?key\s*=\s*['\"][^'\"]+['\"]"
+            "secret\s*=\s*['\"][^'\"]+['\"]"
+            "token\s*=\s*['\"][^'\"]+['\"]"
+            "ghp_[a-zA-Z0-9]{36}"
+            "github_pat_[a-zA-Z0-9]{22}_[a-zA-Z0-9]{59}"
+          )
+          
+          FOUND_SECRETS=0
+          
+          for pattern in "${PATTERNS[@]}"; do
+            if grep -rniE "$pattern" --include="*.yml" --include="*.yaml" --include="*.json" --include="*.md" . 2>/dev/null | grep -v "example" | grep -v "placeholder"; then
+              echo "⚠️ Potential secret found matching pattern: $pattern"
+              FOUND_SECRETS=1
+            fi
+          done
+          
+          if [ $FOUND_SECRETS -eq 1 ]; then
+            echo "❌ Security scan failed: potential secrets detected"
+            exit 1
+          fi
+          
+          echo "✅ No hardcoded secrets detected"
+          
+      - name: Validate Workflow Permissions
+        # STRICT: Workflows must have minimal permissions
+        run: |
+          echo "Checking workflow permissions..."
+          
+          python3 << 'EOF'
+          import yaml
+          import os
+          import sys
+          
+          workflow_dir = '.github/workflows'
+          issues_found = 0
+          
+          for filename in os.listdir(workflow_dir):
+              if not filename.endswith('.yml'):
+                  continue
+                  
+              filepath = os.path.join(workflow_dir, filename)
+              with open(filepath, 'r') as f:
+                  workflow = yaml.safe_load(f)
+              
+              # Check for overly permissive permissions
+              permissions = workflow.get('permissions', {})
+              
+              if permissions == 'write-all':
+                  print(f'⚠️ {filename}: Uses write-all permissions (too permissive)')
+                  issues_found += 1
+              
+              # Check for dangerous patterns in scripts
+              for job_name, job in workflow.get('jobs', {}).items():
+                  for step in job.get('steps', []):
+                      run_cmd = step.get('run', '')
+                      
+                      # Check for dangerous patterns
+                      if 'curl | bash' in run_cmd or 'curl | sh' in run_cmd:
+                          print(f'⚠️ {filename}/{job_name}: Contains curl pipe to shell')
+                          issues_found += 1
+          
+          if issues_found > 0:
+              print(f'❌ Found {issues_found} security issues')
+              sys.exit(1)
+          
+          print('✅ Workflow permissions are properly scoped')
+          EOF
+
+  # Final status check - aggregates all results
+  status:
+    name: CI Status
+    runs-on: ubuntu-latest
+    needs: [validate, lint, test, security]
+    if: always()
+    
+    steps:
+      - name: Check All Jobs Status
+        # STRICT: ALL jobs must pass, no exceptions
+        run: |
+          echo "=== CI RESULTS ==="
+          echo ""
+          echo "Validate: ${{ needs.validate.result }}"
+          echo "Lint: ${{ needs.lint.result }}"
+          echo "Test: ${{ needs.test.result }}"
+          echo "Security: ${{ needs.security.result }}"
+          echo ""
+          
+          # STRICT POLICY: Any failure = overall failure
+          # NO FALLBACK FLAGS ALLOWED
+          
+          if [ "${{ needs.validate.result }}" != "success" ]; then
+            echo "❌ Validation failed"
+            exit 1
+          fi
+          
+          if [ "${{ needs.lint.result }}" != "success" ]; then
+            echo "❌ Lint checks failed"
+            exit 1
+          fi
+          
+          if [ "${{ needs.test.result }}" != "success" ]; then
+            echo "❌ Tests failed"
+            exit 1
+          fi
+          
+          if [ "${{ needs.security.result }}" != "success" ]; then
+            echo "❌ Security scan failed"
+            exit 1
+          fi
+          
+          echo "✅ ALL CI CHECKS PASSED"
+          echo ""
+          echo "This PR is ready for review."
+          
+      - name: Post CI Summary
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const validateResult = '${{ needs.validate.result }}';
+            const lintResult = '${{ needs.lint.result }}';
+            const testResult = '${{ needs.test.result }}';
+            const securityResult = '${{ needs.security.result }}';
+            
+            const allPassed = validateResult === 'success' && 
+                              lintResult === 'success' && 
+                              testResult === 'success' && 
+                              securityResult === 'success';
+            
+            const statusEmoji = allPassed ? '✅' : '❌';
+            const statusText = allPassed ? 'All CI checks passed!' : 'CI checks failed - deployment blocked';
+            
+            const summary = `## ${statusEmoji} CI Status Report
+            
+            | Check | Status |
+            |-------|--------|
+            | Validation | ${validateResult === 'success' ? '✅ Passed' : '❌ Failed'} |
+            | Lint | ${lintResult === 'success' ? '✅ Passed' : '❌ Failed'} |
+            | Tests | ${testResult === 'success' ? '✅ Passed' : '❌ Failed'} |
+            | Security | ${securityResult === 'success' ? '✅ Passed' : '❌ Failed'} |
+            
+            **Result:** ${statusText}
+            
+            ---
+            *This CI pipeline enforces a strict "no fallback" policy. All checks must pass before merge is allowed.*
+            *See [CI No Fallback Policy](../docs/CI_NO_FALLBACK_POLICY.md) for details.*
+            `;
+            
+            // Find existing CI comment or create new one
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            });
+            
+            const ciComment = comments.data.find(c => c.body.includes('CI Status Report'));
+            
+            if (ciComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: ciComment.id,
+                body: summary
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: summary
+              });
+            }

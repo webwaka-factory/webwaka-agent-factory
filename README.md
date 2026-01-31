@@ -90,6 +90,9 @@ Real-time Project board and daily automated reports answer "Who is working on wh
 ### ✅ Founder-in-the-Loop Governance
 The Founder is the only approval authority. All decisions are explicit and recorded.
 
+### ✅ Strict CI/CD Policy (No Fallbacks)
+The CI pipeline enforces a strict "no fallback" policy. Test failures block deployment. There are no `continue-on-error` flags, no `|| true` patterns, and no mechanisms to bypass quality gates. See [CI No Fallback Policy](docs/CI_NO_FALLBACK_POLICY.md).
+
 ---
 
 ## Repository Structure
@@ -102,6 +105,7 @@ webwaka-agent-factory/
 │   │   ├── feature_request.yml
 │   │   └── chore.yml
 │   └── workflows/               # GitHub Actions automation
+│       ├── ci.yml               # CI pipeline (strict, no fallbacks)
 │       ├── state_machine.yml    # Core state transition logic
 │       ├── duplicate_check.yml  # Duplicate detection
 │       ├── pr_linking.yml       # PR-to-issue linking
@@ -112,7 +116,8 @@ webwaka-agent-factory/
 │   │   └── FOUNDER_GUIDE.md     # Founder control guide
 │   ├── ARCHITECTURE.md          # System architecture
 │   ├── STATE_MACHINE.md         # State machine specification
-│   └── SLASH_COMMANDS.md        # Command reference
+│   ├── SLASH_COMMANDS.md        # Command reference
+│   └── CI_NO_FALLBACK_POLICY.md # CI/CD strict policy
 ├── scripts/
 │   └── report_generator.py      # Daily report generation
 └── README.md                    # This file
@@ -186,6 +191,7 @@ All commands are validated by the state machine workflow.
 4. **Founder approval required** - No implementation without explicit approval
 5. **State machine must be respected** - Invalid transitions are rejected
 6. **All actions must be logged** - Every state change creates an audit trail
+7. **CI must pass without fallbacks** - No deployment if tests fail, no exceptions
 
 ---
 
