@@ -1,11 +1,15 @@
 name: Pull Request Linking
-
 on:
   pull_request:
     types: [opened, synchronize]
   workflow_run:
     workflows: ["CI"]
     types: [completed]
+
+permissions:
+  issues: write
+  pull-requests: read
+  contents: read
 
 jobs:
   link_pr_to_issue:
@@ -53,7 +57,7 @@ jobs:
             core.setOutput('issue_number', issueNumber);
             console.log(`Found issue reference: #${issueNumber}`);
             return issueNumber;
-
+      
       - name: Transition Issue to Implemented
         if: steps.extract.outputs.issue_number
         uses: actions/github-script@v7
@@ -89,131 +93,23 @@ jobs:
                 labels: ['state: implemented']
               });
               
-              // Post comment
+              // Post comment - NO AUTO-ASSIGNMENT
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: issueNumber,
-                body: `✅ **Pull Request Opened**\n\n**PR:** #${context.payload.pull_request.number}\n**Author:** @${context.payload.pull_request.user.login}\n**State:** \`${currentState}\` → \`state: implemented\`\n\nCI tests will run automatically. The issue will transition to \`state: testing\` once tests complete.`
+                body: `✅ **Pull Request Opened**
+
+**PR:** #${{ github.event.pull_request.number }}
+**Author:** @${{ github.event.pull_request.user.login }}
+**State:** \`${currentState}\` → \`state: implemented\`
+
+CI tests will run automatically. The issue will transition to \`state: testing\` once tests complete.
+
+**Note:** This issue remains unassigned. QA agents can claim it using \`/claim\` when ready to test.`
               });
               
-              console.log(`Transitioned issue #${issueNumber} to 'state: implemented'`);
+              console.log(`Transitioned issue #${issueNumber} to 'state: implemented' (NO AUTO-ASSIGNMENT)`);
             } else {
               console.log(`Issue #${issueNumber} is in state '${currentState}', not transitioning.`);
-            }
-
-  handle_test_results:
-    name: Handle CI Test Results
-    runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion != 'cancelled'
-    
-    steps:
-      - name: Get PR Number
-        id: pr
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const prNumber = context.payload.workflow_run.pull_requests[0]?.number;
-            if (!prNumber) {
-              console.log('No PR associated with this workflow run');
-              return null;
-            }
-            core.setOutput('pr_number', prNumber);
-            return prNumber;
-
-      - name: Get Issue from PR
-        if: steps.pr.outputs.pr_number
-        id: issue
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const prNumber = parseInt('${{ steps.pr.outputs.pr_number }}');
-            
-            const pr = await github.rest.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: prNumber
-            });
-            
-            const prBody = pr.data.body || '';
-            const pattern = /(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)/gi;
-            const matches = [...prBody.matchAll(pattern)];
-            
-            if (matches.length === 0) {
-              console.log('No issue reference found in PR');
-              return null;
-            }
-            
-            const issueNumber = matches[0][1];
-            core.setOutput('issue_number', issueNumber);
-            return issueNumber;
-
-      - name: Update Issue Based on Test Results
-        if: steps.issue.outputs.issue_number
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const issueNumber = parseInt('${{ steps.issue.outputs.issue_number }}');
-            const conclusion = '${{ github.event.workflow_run.conclusion }}';
-            
-            // Get current issue state
-            const issue = await github.rest.issues.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: issueNumber
-            });
-            
-            const stateLabel = issue.data.labels.find(l => l.name.startsWith('state:'));
-            const currentState = stateLabel ? stateLabel.name : 'none';
-            
-            let newState = null;
-            let message = '';
-            
-            if (conclusion === 'success' && currentState === 'state: implemented') {
-              newState = 'state: testing';
-              message = `✅ **CI Tests Passed**\n\nAll tests passed successfully. Issue transitioned to \`state: testing\`.\n\nNext step: Manual verification before closing.`;
-            } else if (conclusion === 'failure' && (currentState === 'state: implemented' || currentState === 'state: testing')) {
-              newState = 'state: failed-testing';
-              message = `❌ **CI Tests Failed**\n\nTests failed. Issue transitioned to \`state: failed-testing\`.\n\nThe task is now available for another agent to claim and fix.\n\n**Workflow Run:** ${context.payload.workflow_run.html_url}`;
-              
-              // Unassign the issue
-              const assignee = issue.data.assignee?.login;
-              if (assignee) {
-                await github.rest.issues.removeAssignees({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: issueNumber,
-                  assignees: [assignee]
-                });
-              }
-            }
-            
-            if (newState) {
-              // Remove old state
-              if (currentState !== 'none') {
-                await github.rest.issues.removeLabel({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: issueNumber,
-                  name: currentState
-                });
-              }
-              
-              // Add new state
-              await github.rest.issues.addLabels({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: issueNumber,
-                labels: [newState]
-              });
-              
-              // Post comment
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: issueNumber,
-                body: message
-              });
-              
-              console.log(`Updated issue #${issueNumber}: ${currentState} → ${newState}`);
             }
