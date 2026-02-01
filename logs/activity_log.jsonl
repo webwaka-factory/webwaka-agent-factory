@@ -139,3 +139,4 @@
 {"timestamp": "2026-02-01T15:05:20.879075Z", "action": "comment", "issue_number": 50, "agent_id": "webwakaagent1", "details": "Command: /claim"}
 {"timestamp": "2026-02-01T15:05:30.945247Z", "action": "claim", "issue_number": 50, "agent_id": "webwakaagent1", "details": "Issue assigned"}
 {"timestamp": "2026-02-01T15:06:00.248301Z", "action": "comment", "issue_number": 50, "agent_id": "webwakaagent1", "details": "Command: /state testing"}
+{"timestamp": "2026-02-01T15:06:09.231470Z", "action": "state_change", "issue_number": 50, "agent_id": "webwakaagent1", "details": "Label added: state:testing"}
