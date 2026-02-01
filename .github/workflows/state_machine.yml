@@ -1,3 +1,8 @@
+# ⚠️  FACTORY POLICY: Failed Testing Issues
+# Any issue that fails testing MUST be reopened and NEVER closed.
+# This ensures quality and prevents loss of work.
+# Failed testing issues are transitioned back to implementing state for remediation.
+
 name: State Machine Enforcement
 
 on:
