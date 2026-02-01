@@ -21,18 +21,13 @@ jobs:
         id: parse
         run: |
           COMMENT="${{ github.event.comment.body }}"
-          # Extract command (first word after /)
           COMMAND=$(echo "$COMMENT" | head -n 1 | grep -oP '^/\w+' | sed 's/\///')
-          # Extract arguments (everything after command)
           ARGS=$(echo "$COMMENT" | head -n 1 | sed 's/^\/\w\+//' | xargs)
           
           echo "command=$COMMAND" >> $GITHUB_OUTPUT
           echo "args=$ARGS" >> $GITHUB_OUTPUT
           echo "actor=${{ github.event.comment.user.login }}" >> $GITHUB_OUTPUT
           echo "issue_number=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
-          
-          echo "📝 Parsed command: /$COMMAND $ARGS"
-          echo "👤 Actor: ${{ github.event.comment.user.login }}"
 
       - name: Get Current State
         id: current_state
@@ -51,11 +46,6 @@ jobs:
             
             core.setOutput('current_state', currentState);
             core.setOutput('assignee', assignee || 'none');
-            
-            console.log(`Current state: ${currentState}`);
-            console.log(`Current assignee: ${assignee || 'none'}`);
-            
-            return { currentState, assignee };
 
       - name: Validate and Execute Transition
         id: transition
@@ -68,7 +58,6 @@ jobs:
             const currentAssignee = '${{ steps.current_state.outputs.assignee }}';
             const actor = '${{ steps.parse.outputs.actor }}';
             
-            // State transition matrix
             const transitions = {
               'claim': {
                 from: ['state: ready-for-implementation'],
@@ -76,78 +65,16 @@ jobs:
                 requiresUnassigned: true,
                 assignToActor: true
               },
-              'abandon': {
-                from: ['state: implementing', 'state: blocked'],
-                to: 'state: stopped-working',
-                requiresAssignedToActor: true,
-                unassign: true
-              },
               'state': {
-                'blocked': {
-                  from: ['state: implementing'],
-                  to: 'state: blocked',
-                  requiresAssignedToActor: true
-                },
-                'needs-rework': {
-                  from: ['state: verification'],
-                  to: 'state: needs-rework',
-                  unassign: true
-                },
-                'triaged': {
-                  from: ['state: discovered'],
-                  to: 'state: triaged'
-                },
-                'needs-brainstorming': {
-                  from: ['state: triaged'],
-                  to: 'state: needs-brainstorming'
-                },
-                'brainstorming': {
-                  from: ['state: needs-brainstorming'],
-                  to: 'state: brainstorming',
-                  assignToActor: true
-                },
-                'needs-founder-clarification': {
-                  from: ['state: triaged', 'state: brainstorming'],
-                  to: 'state: needs-founder-clarification'
-                },
-                'awaiting-founder-decision': {
-                  from: ['state: brainstorming', 'state: needs-founder-clarification'],
-                  to: 'state: awaiting-founder-decision'
-                },
-                'ready-for-implementation': {
-                  from: ['state: awaiting-founder-decision'],
-                  to: 'state: ready-for-implementation',
-                  requiresApproved: true
-                },
-                'implementing': {
-                  from: ['state: stopped-working', 'state: failed-testing', 'state: needs-rework', 'state: blocked'],
-                  to: 'state: implementing',
-                  assignToActor: true
-                },
                 'testing': {
                   from: ['state: implementing'],
                   to: 'state: testing',
                   requiresAssignedToActor: true
                 },
-                'failed-testing': {
-                  from: ['state: testing'],
-                  to: 'state: failed-testing'
-                },
-                'verification': {
-                  from: ['state: testing'],
-                  to: 'state: verification'
-                },
-                'closed': {
-                  from: ['state: verification'],
-                  to: 'state: closed',
-                  closeIssue: true
+                'triaged': {
+                  from: ['state: discovered'],
+                  to: 'state: triaged'
                 }
-              },
-              'duplicate': {
-                from: ['state: discovered', 'state: triaged'],
-                to: 'state: duplicate',
-                closeIssue: true,
-                requiresArgs: true
               }
             };
             
@@ -156,8 +83,7 @@ jobs:
             let valid = false;
             let errorMessage = '';
             
-            // Parse transition
-            if (command === 'claim' || command === 'abandon' || command === 'duplicate') {
+            if (command === 'claim') {
               transition = transitions[command];
               newState = transition?.to;
             } else if (command === 'state' && args) {
@@ -166,51 +92,30 @@ jobs:
             }
             
             if (!transition) {
-              errorMessage = `Unknown command or state: /${command} ${args}`;
+              errorMessage = `Unknown command: /${command} ${args}`;
             } else {
-              // Validate transition
               if (!transition.from.includes(currentState)) {
-                errorMessage = `Cannot transition from \`${currentState}\` to \`${newState}\`. Valid source states: ${transition.from.map(s => '`' + s + '`').join(', ')}`;
+                errorMessage = `Cannot transition from ${currentState} to ${newState}`;
               } else if (transition.requiresUnassigned && currentAssignee !== 'none') {
-                errorMessage = `This task is already assigned to @${currentAssignee}. Cannot claim.`;
+                errorMessage = `Task already assigned to @${currentAssignee}`;
               } else if (transition.requiresAssignedToActor && currentAssignee !== actor) {
-                errorMessage = `This task is assigned to @${currentAssignee}. Only the assignee can perform this action.`;
-              } else if (transition.requiresArgs && !args) {
-                errorMessage = `This command requires arguments. Example: \`/${command} #123\``;
-              } else if (transition.requiresApproved) {
-                // Check for approved label
-                const issue = await github.rest.issues.get({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: context.issue.number
-                });
-                const hasApproved = issue.data.labels.some(l => l.name === 'approved');
-                if (!hasApproved) {
-                  errorMessage = `This task must be approved by the Founder before it can move to \`${newState}\`.`;
-                } else {
-                  valid = true;
-                }
+                errorMessage = `Only @${currentAssignee} can perform this action`;
               } else {
                 valid = true;
               }
             }
             
             if (!valid) {
-              // Post error comment
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: context.issue.number,
-                body: `❌ **Invalid State Transition**\n\n**Command:** \`/${command} ${args}\`\n**Current State:** \`${currentState}\`\n**Actor:** @${actor}\n\n**Error:** ${errorMessage}\n\n---\n*See [State Machine Documentation](../docs/STATE_MACHINE.md) for valid transitions.*`
+                body: `❌ Invalid transition: ${errorMessage}`
               });
               core.setFailed(errorMessage);
               return;
             }
             
-            // Execute transition
-            console.log(`✅ Valid transition: ${currentState} → ${newState}`);
-            
-            // Remove old state label
             if (currentState !== 'none') {
               try {
                 await github.rest.issues.removeLabel({
@@ -220,11 +125,10 @@ jobs:
                   name: currentState
                 });
               } catch (error) {
-                console.log(`Warning: Could not remove label ${currentState}`);
+                console.log(`Warning: Could not remove label`);
               }
             }
             
-            // Add new state label
             await github.rest.issues.addLabels({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -232,7 +136,6 @@ jobs:
               labels: [newState]
             });
             
-            // Handle assignee changes
             if (transition.assignToActor) {
               await github.rest.issues.addAssignees({
                 owner: context.repo.owner,
@@ -242,47 +145,11 @@ jobs:
               });
             }
             
-            if (transition.unassign && currentAssignee !== 'none') {
-              await github.rest.issues.removeAssignees({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                assignees: [currentAssignee]
-              });
-            }
-            
-            // Handle issue closure
-            if (transition.closeIssue) {
-              await github.rest.issues.update({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                state: 'closed'
-              });
-            }
-            
-            // Post success comment
-            let successMessage = `✅ **State Transition Successful**\n\n`;
-            successMessage += `**From:** \`${currentState}\`\n`;
-            successMessage += `**To:** \`${newState}\`\n`;
-            successMessage += `**Actor:** @${actor}\n`;
-            successMessage += `**Timestamp:** ${new Date().toISOString()}\n`;
-            
-            if (transition.assignToActor) {
-              successMessage += `\n🔒 **Task claimed by @${actor}**`;
-            }
-            if (transition.unassign) {
-              successMessage += `\n🔓 **Task unassigned** (available for claiming)`;
-            }
-            if (transition.closeIssue) {
-              successMessage += `\n🎉 **Issue closed**`;
-            }
-            
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: successMessage
+              body: `✅ State transition: ${currentState} → ${newState}`
             });
             
             core.setOutput('success', 'true');
