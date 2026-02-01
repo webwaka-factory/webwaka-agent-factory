@@ -1,0 +1,41 @@
+name: Implementation Validation
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  validate_implementation:
+    if: contains(github.event.issue.labels.*.name, 'state: verification')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Implementation Completeness
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number
+            });
+            
+            // Check for implementation indicators
+            const allComments = comments.data.map(c => c.body).join('\n').toLowerCase();
+            
+            const hasCodeIndicators = allComments.includes('pr') || 
+                                     allComments.includes('commit') ||
+                                     allComments.includes('code') ||
+                                     allComments.includes('implementation complete');
+            
+            const hasDocumentationOnly = allComments.includes('documentation') && 
+                                        !hasCodeIndicators;
+            
+            if (hasDocumentationOnly) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: `⚠️ **IMPLEMENTATION VALIDATION WARNING**\n\nThis issue appears to be documentation-only without actual code implementation. Please ensure:\n\n- [ ] Actual working code is implemented\n- [ ] Pull requests are linked\n- [ ] Tests are included\n- [ ] All requirements are met\n\nIf this is correct, please reply with confirmation.`
+              });
+            }
