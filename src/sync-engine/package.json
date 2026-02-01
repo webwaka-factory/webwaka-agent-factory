@@ -1,0 +1,7 @@
+{
+  "name": "@webwaka/sync-engine",
+  "version": "1.0.0",
+  "description": "SYNC-002 — Automatic Sync Engine",
+  "main": "index.ts",
+  "author": "webwakaagent1"
+}
