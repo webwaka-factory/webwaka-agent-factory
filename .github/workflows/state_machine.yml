@@ -28,7 +28,7 @@ jobs:
           echo "args=$ARGS" >> $GITHUB_OUTPUT
           echo "actor=${{ github.event.comment.user.login }}" >> $GITHUB_OUTPUT
           echo "issue_number=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
-      
+
       - name: Get Current State
         id: current_state
         uses: actions/github-script@v7
@@ -46,312 +46,111 @@ jobs:
             
             core.setOutput('current_state', currentState);
             core.setOutput('assignee', assignee || 'none');
-      
-      - name: Handle Claim Command
-        if: steps.parse.outputs.command == 'claim'
+
+      - name: Validate and Execute Transition
+        id: transition
         uses: actions/github-script@v7
         with:
           script: |
-            const actor = '${{ steps.parse.outputs.actor }}';
-            const currentState = '${{ steps.current_state.outputs.current_state }}';
-            
-            // Validate state for claiming
-            if (currentState !== 'state: ready-for-implementation' && currentState !== 'state: testing' && currentState !== 'state: verification' && currentState !== 'state: failed-testing') {
-              core.setFailed(`Cannot claim from ${currentState}. Must be ready-for-implementation, testing, verification, or failed-testing`);
-              return;
-            }
-            
-            // Assign to the actor
-            await github.rest.issues.addAssignees({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              assignees: [actor]
-            });
-            
-            // Post confirmation comment
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: `✅ **Claimed by @${actor}**
-
-This task is now assigned to you. Please follow the instructions and update status as you progress.
-
-**For Testing Tasks:** Comment \`/complete-testing\` when testing is complete.
-**For Implementation Tasks:** Comment \`/complete-implementation\` when ready for testing.
-**For Verification Tasks:** Comment \`/approve\` when verification is complete.
-**If Tests Fail:** Comment \`/fail-testing <reason>\` to report failure.
-
-Task will be **auto-unassigned** upon completion.`
-            });
-      
-      - name: Handle Complete-Testing Command
-        if: steps.parse.outputs.command == 'complete-testing'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const actor = '${{ steps.parse.outputs.actor }}';
-            const currentState = '${{ steps.current_state.outputs.current_state }}';
-            
-            // Validate state
-            if (currentState !== 'state: testing') {
-              core.setFailed(`Cannot complete-testing from ${currentState}. Must be in state: testing`);
-              return;
-            }
-            
-            // Remove testing state label
-            try {
-              await github.rest.issues.removeLabel({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                name: 'state: testing'
-              });
-            } catch (e) {
-              console.log('Could not remove testing label:', e.message);
-            }
-            
-            // Add verification state label
-            await github.rest.issues.addLabels({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              labels: ['state: verification']
-            });
-            
-            // AUTO-UNASSIGN: Remove assignee
-            await github.rest.issues.update({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              assignees: []
-            });
-            
-            // Post completion comment
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: `✅ **Testing Completed by @${actor}**
-
-This issue has been transitioned from testing to verification phase.
-**Task has been unassigned** and is now available for next phase.
-
-**Next Steps:**
-1. Founder will review the testing results
-2. Any issues found will be addressed
-3. Issue will be closed once verification is complete
-
-Thank you for thorough testing!`
-            });
-      
-      - name: Handle Fail-Testing Command
-        if: steps.parse.outputs.command == 'fail-testing'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const actor = '${{ steps.parse.outputs.actor }}';
+            const command = '${{ steps.parse.outputs.command }}';
             const args = '${{ steps.parse.outputs.args }}';
             const currentState = '${{ steps.current_state.outputs.current_state }}';
-            
-            // Validate state
-            if (currentState !== 'state: testing') {
-              core.setFailed(`Cannot fail-testing from ${currentState}. Must be in state: testing`);
-              return;
-            }
-            
-            // Remove testing state label
-            try {
-              await github.rest.issues.removeLabel({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                name: 'state: testing'
-              });
-            } catch (e) {
-              console.log('Could not remove testing label:', e.message);
-            }
-            
-            // Add failed-testing state label
-            await github.rest.issues.addLabels({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              labels: ['state: failed-testing']
-            });
-            
-            // AUTO-UNASSIGN: Remove assignee
-            await github.rest.issues.update({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              assignees: []
-            });
-            
-            // Post failure comment
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: `❌ **Testing Failed by @${actor}**
-
-Testing did not pass. This issue has been transitioned to \`state: failed-testing\`.
-
-**Failure Reason:**
-${args || 'See comments above for details'}
-
-**Task has been unassigned** and is now available for another agent to claim and fix.
-
-**Next Steps:**
-1. Another agent can claim this task using \`/claim\`
-2. Address the failures
-3. Retest and use \`/complete-testing\` when ready
-
-Thank you for thorough testing!`
-            });
-      
-      - name: Handle Complete-Implementation Command
-        if: steps.parse.outputs.command == 'complete-implementation'
-        uses: actions/github-script@v7
-        with:
-          script: |
+            const currentAssignee = '${{ steps.current_state.outputs.assignee }}';
             const actor = '${{ steps.parse.outputs.actor }}';
-            const currentState = '${{ steps.current_state.outputs.current_state }}';
             
-            // Validate state
-            if (currentState !== 'state: implementing') {
-              core.setFailed(`Cannot complete-implementation from ${currentState}. Must be in state: implementing`);
-              return;
+            const transitions = {
+              'claim': {
+                from: ['state: ready-for-implementation'],
+                to: 'state: implementing',
+                requiresUnassigned: true,
+                assignToActor: true
+              },
+              'state': {
+                'testing': {
+                  from: ['state: implementing'],
+                  to: 'state: testing',
+                  requiresAssignedToActor: true
+                },
+                'triaged': {
+                  from: ['state: discovered'],
+                  to: 'state: triaged'
+                }
+              }
+            };
+            
+            let transition = null;
+            let newState = null;
+            let valid = false;
+            let errorMessage = '';
+            
+            if (command === 'claim') {
+              transition = transitions[command];
+              newState = transition?.to;
+            } else if (command === 'state' && args) {
+              transition = transitions.state[args];
+              newState = transition?.to;
             }
             
-            // Remove implementing state label
-            try {
-              await github.rest.issues.removeLabel({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                name: 'state: implementing'
-              });
-            } catch (e) {
-              console.log('Could not remove implementing label:', e.message);
+            if (!transition) {
+              errorMessage = `Unknown command: /${command} ${args}`;
+            } else {
+              if (!transition.from.includes(currentState)) {
+                errorMessage = `Cannot transition from ${currentState} to ${newState}`;
+              } else if (transition.requiresUnassigned && currentAssignee !== 'none') {
+                errorMessage = `Task already assigned to @${currentAssignee}`;
+              } else if (transition.requiresAssignedToActor && currentAssignee !== actor) {
+                errorMessage = `Only @${currentAssignee} can perform this action`;
+              } else {
+                valid = true;
+              }
             }
             
-            // Add testing state label
-            await github.rest.issues.addLabels({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              labels: ['state: testing']
-            });
-            
-            // AUTO-UNASSIGN: Remove assignee
-            await github.rest.issues.update({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              assignees: []
-            });
-            
-            // Post completion comment
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: `✅ **Implementation Completed by @${actor}**
-
-This issue has been transitioned from implementing to testing phase.
-**Task has been unassigned** and is now available for QA agents to claim.
-
-**Next Steps:**
-1. QA agents can claim this task using \`/claim\`
-2. Testing will be performed
-3. Issue will move to verification
-
-Thank you for the implementation!`
-            });
-      
-      - name: Handle Approve Command
-        if: steps.parse.outputs.command == 'approve'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const actor = '${{ steps.parse.outputs.actor }}';
-            const currentState = '${{ steps.current_state.outputs.current_state }}';
-            
-            // Validate state
-            if (currentState !== 'state: verification') {
-              core.setFailed(`Cannot approve from ${currentState}. Must be in state: verification`);
-              return;
-            }
-            
-            // Remove verification state label
-            try {
-              await github.rest.issues.removeLabel({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                name: 'state: verification'
-              });
-            } catch (e) {
-              console.log('Could not remove verification label:', e.message);
-            }
-            
-            // Add closed state label
-            await github.rest.issues.addLabels({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              labels: ['state: closed']
-            });
-            
-            // AUTO-UNASSIGN: Remove assignee
-            await github.rest.issues.update({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              assignees: []
-            });
-            
-            // Post approval comment
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: `✅ **Approved by @${actor}**
-
-This issue has been verified and approved. It is now marked as closed.
-
-**Status:** \`state: closed\`
-
-Thank you for completing this task!`
-            });
-
-  handle_label_changes:
-    name: Handle Label Changes
-    runs-on: ubuntu-latest
-    if: github.event_name == 'issues' && github.event.action == 'labeled'
-    
-    steps:
-      - name: Log Label Change
-        run: |
-          echo "Label changed on issue #${{ github.event.issue.number }}"
-          echo "Label added: ${{ github.event.label.name }}"
-          echo "Issue state updated"
-      
-      - name: Post Acknowledgment
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const label = '${{ github.event.label.name }}';
-            
-            if (label.startsWith('state:')) {
+            if (!valid) {
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: context.issue.number,
-                body: `📋 **State Updated**: ${label}
-
-Issue state has been updated by Chief of Staff.`
+                body: `❌ Invalid transition: ${errorMessage}`
+              });
+              core.setFailed(errorMessage);
+              return;
+            }
+            
+            if (currentState !== 'none') {
+              try {
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  name: currentState
+                });
+              } catch (error) {
+                console.log(`Warning: Could not remove label`);
+              }
+            }
+            
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: [newState]
+            });
+            
+            if (transition.assignToActor) {
+              await github.rest.issues.addAssignees({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                assignees: [actor]
               });
             }
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `✅ State transition: ${currentState} → ${newState}`
+            });
+            
+            core.setOutput('success', 'true');
+            core.setOutput('new_state', newState);
