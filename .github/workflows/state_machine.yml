@@ -151,6 +151,72 @@ This task is now assigned to you. Please follow the instructions and update stat
 Task will be **auto-unassigned** upon completion.`
             });
       
+      
+      - name: Handle Fail-Testing Command
+        if: steps.parse.outputs.command == 'fail-testing'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const actor = '${{ steps.parse.outputs.actor }}';
+            const args = '${{ steps.parse.outputs.args }}';
+            const currentState = '${{ steps.current_state.outputs.current_state }}';
+            
+            // Validate state
+            if (currentState !== 'state: testing') {
+              core.setFailed(`Cannot fail-testing from ${currentState}. Must be in state: testing`);
+              return;
+            }
+            
+            // Remove testing state label
+            try {
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                name: 'state: testing'
+              });
+            } catch (e) {
+              console.log('Could not remove testing label:', e.message);
+            }
+            
+            // Add failed-testing state label
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: ['state: failed-testing']
+            });
+            
+            // AUTO-UNASSIGN: Remove assignee
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              assignees: []
+            });
+            
+            // Post failure comment
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `❌ **Testing Failed by @${actor}**
+
+Testing did not pass. This issue has been transitioned to \`state: failed-testing\`.
+
+**Failure Reason:**
+${args || 'See comments above for details'}
+
+**Task has been unassigned** and is now available for another agent to claim and fix.
+
+**Next Steps:**
+1. Another agent can claim this task using \`/claim\`
+2. Address the failures
+3. Retest and use \`/complete-testing\` when ready
+
+Thank you for thorough testing!`
+            });
+
       - name: Handle Complete-Implementation Command
         if: steps.parse.outputs.command == 'complete-implementation'
         uses: actions/github-script@v7
