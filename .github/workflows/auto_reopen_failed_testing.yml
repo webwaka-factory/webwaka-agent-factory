@@ -1,0 +1,110 @@
+name: Auto-Reopen Failed Testing Issues
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  auto_reopen_failed_testing:
+    name: Auto-Reopen Failed Testing Issues
+    runs-on: ubuntu-latest
+    if: github.event.label.name == 'state: failed-testing'
+    
+    steps:
+      - name: Check if Issue is Failed Testing
+        id: check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = await github.rest.issues.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            });
+            
+            const hasFailedTestingLabel = issue.data.labels.some(l => l.name === 'state: failed-testing');
+            
+            if (hasFailedTestingLabel) {
+              core.setOutput('should_reopen', 'true');
+            } else {
+              core.setOutput('should_reopen', 'false');
+            }
+      
+      - name: Remove Failed Testing Label
+        if: steps.check.outputs.should_reopen == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            try {
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                name: 'state: failed-testing'
+              });
+              console.log('Removed failed-testing label');
+            } catch (e) {
+              console.log('Could not remove label:', e.message);
+            }
+      
+      - name: Add Implementing Label
+        if: steps.check.outputs.should_reopen == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: ['state: implementing']
+            });
+            console.log('Added implementing label');
+      
+      - name: Unassign Issue
+        if: steps.check.outputs.should_reopen == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              assignees: []
+            });
+            console.log('Unassigned issue');
+      
+      - name: Post Reopening Comment
+        if: steps.check.outputs.should_reopen == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const msg = `🔄 **AUTOMATICALLY REOPENED - Failed Testing**
+
+**Factory Policy:** Any issue that fails testing MUST be reopened and NEVER closed.
+
+**Status:** Transitioned from \\\`state: failed-testing\\\` → \\\`state: implementing\\\`
+
+**What Happened:**
+- Testing was not successful
+- Issue has been automatically reopened for remediation
+- Task has been unassigned
+
+**Next Steps:**
+1. Another agent can claim this issue using \\\`/claim\\\`
+2. Review the failure reasons in previous comments
+3. Fix the issues that caused the test failure
+4. Implement the fixes
+5. Use \\\`/complete-implementation\\\` when ready for retesting
+
+**Thank you for your work on this. Let's get it fixed!**`;
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: msg
+            });
