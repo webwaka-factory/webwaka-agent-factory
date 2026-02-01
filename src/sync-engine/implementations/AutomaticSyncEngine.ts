@@ -356,16 +356,99 @@ export class AutomaticSyncEngine implements ISyncEngine {
   }
   
   private prepareDeltaSync(transactions: any[]): any[] {
-    // Delta sync: only include changed fields
-    return transactions.map(tx => ({
-      id: tx.metadata.id,
-      payload: tx.payload,
-      metadata: {
+    // Delta sync: only include essential fields and changed data
+    // Reduces payload size by excluding unchanged metadata
+    return transactions.map(tx => {
+      const delta: any = {
+        id: tx.metadata.id,
         type: tx.metadata.type,
-        createdAt: tx.metadata.createdAt,
-        attempts: tx.metadata.attempts
+        payload: tx.payload,
+        timestamp: tx.metadata.createdAt
+      };
+      
+      // Only include retry info if transaction has been attempted
+      if (tx.metadata.attempts > 0) {
+        delta.attempts = tx.metadata.attempts;
+        delta.lastError = tx.metadata.lastError;
       }
-    }));
+      
+      // Include version for conflict detection
+      if (tx.metadata.version) {
+        delta.version = tx.metadata.version;
+      }
+      
+      // Include hash for integrity verification
+      if (tx.metadata.contentHash) {
+        delta.contentHash = tx.metadata.contentHash;
+      }
+      
+      return delta;
+    });
+  }
+  
+  private async retryFailedTransaction(transactionId: string): Promise<boolean> {
+    try {
+      // Get transaction from queue
+      const tx = await this.queue.peek();
+      if (!tx || tx.metadata.id !== transactionId) {
+        return false;
+      }
+      
+      // Check retry limit
+      const maxRetries = 3;
+      if (tx.metadata.attempts >= maxRetries) {
+        this.log(`Transaction ${transactionId} exceeded max retries`);
+        return false;
+      }
+      
+      // Retry the transaction
+      const syncRequest = {
+        transactions: [this.prepareDeltaSync([tx])[0]],
+        metadata: {
+          isRetry: true,
+          attempt: tx.metadata.attempts + 1,
+          timestamp: new Date().toISOString()
+        }
+      };
+      
+      const response = await this.sendSyncRequest(syncRequest);
+      
+      if (response.synced && response.synced.length > 0) {
+        await this.queue.updateStatus(
+          transactionId,
+          TransactionStatus.SYNCED,
+          undefined,
+          response.synced[0].serverTransactionId
+        );
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      this.log(`Retry failed for transaction ${transactionId}: ${error}`);
+      return false;
+    }
+  }
+  
+  private detectConflict(transaction: any, serverResponse: any): boolean {
+    // Conflict detection based on version mismatch
+    if (serverResponse.currentVersion && transaction.metadata.version) {
+      return serverResponse.currentVersion !== transaction.metadata.version;
+    }
+    
+    // Conflict detection based on content hash
+    if (serverResponse.contentHash && transaction.metadata.contentHash) {
+      return serverResponse.contentHash !== transaction.metadata.contentHash;
+    }
+    
+    // Conflict detection based on timestamp
+    if (serverResponse.lastModified && transaction.metadata.updatedAt) {
+      const serverTime = new Date(serverResponse.lastModified).getTime();
+      const localTime = new Date(transaction.metadata.updatedAt).getTime();
+      return serverTime > localTime;
+    }
+    
+    return false;
   }
   
   private async sendSyncRequest(request: any): Promise<any> {
@@ -411,22 +494,61 @@ export class AutomaticSyncEngine implements ISyncEngine {
         undefined,
         result.serverTransactionId
       );
-      synced.push(result);
+      synced.push({
+        transactionId: result.transactionId,
+        success: true,
+        serverTransactionId: result.serverTransactionId
+      });
     }
     
-    // Process failed transactions
+    // Process failed transactions with retry logic
     for (const result of response.failed || []) {
+      const transaction = transactions.find(tx => tx.metadata.id === result.transactionId);
+      
+      // Attempt retry if configured and within retry limit
+      if (this.config!.retryFailedTransactions && transaction) {
+        const retrySuccess = await this.retryFailedTransaction(result.transactionId);
+        if (retrySuccess) {
+          synced.push({
+            transactionId: result.transactionId,
+            success: true,
+            serverTransactionId: result.serverTransactionId
+          });
+          continue;
+        }
+      }
+      
+      // Mark as failed if retry unsuccessful or not configured
       await this.queue.updateStatus(
         result.transactionId,
         TransactionStatus.FAILED,
         result.error
       );
-      failed.push(result);
+      failed.push({
+        transactionId: result.transactionId,
+        success: false,
+        error: result.error
+      });
     }
     
-    // Process conflicts
+    // Process conflicts with detection logic
     for (const result of response.conflicts || []) {
-      conflicts.push(result);
+      const transaction = transactions.find(tx => tx.metadata.id === result.transactionId);
+      
+      if (transaction && this.detectConflict(transaction, result)) {
+        conflicts.push({
+          transactionId: result.transactionId,
+          success: false,
+          conflictData: result.conflictData || result
+        });
+        
+        // Mark transaction as failed due to conflict
+        await this.queue.updateStatus(
+          result.transactionId,
+          TransactionStatus.FAILED,
+          'Conflict detected: server data differs from local data'
+        );
+      }
     }
     
     return {
