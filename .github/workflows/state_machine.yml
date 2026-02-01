@@ -81,6 +81,14 @@ jobs:
               labels: ['state: verification']
             });
             
+            // AUTO-UNASSIGN: Remove assignee
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              assignees: []
+            });
+            
             // Post completion comment
             await github.rest.issues.createComment({
               owner: context.repo.owner,
@@ -89,6 +97,7 @@ jobs:
               body: `✅ **Testing Completed by @${actor}**
 
 This issue has been transitioned from testing to verification phase.
+**Task has been unassigned** and is now available for next phase.
 
 **Next Steps:**
 1. Founder will review the testing results
@@ -107,8 +116,8 @@ Thank you for thorough testing!`
             const currentState = '${{ steps.current_state.outputs.current_state }}';
             
             // Validate state for claiming
-            if (currentState !== 'state: ready-for-implementation' && currentState !== 'state: testing') {
-              core.setFailed(`Cannot claim from ${currentState}. Must be ready-for-implementation or testing`);
+            if (currentState !== 'state: ready-for-implementation' && currentState !== 'state: testing' && currentState !== 'state: verification') {
+              core.setFailed(`Cannot claim from ${currentState}. Must be ready-for-implementation, testing, or verification`);
               return;
             }
             
@@ -136,7 +145,70 @@ Thank you for thorough testing!`
 This task is now assigned to you. Please follow the instructions and update status as you progress.
 
 **For Testing Tasks:** Comment \`/complete-testing\` when testing is complete.
-**For Implementation Tasks:** Comment \`/start-testing\` when ready for testing.`
+**For Implementation Tasks:** Comment \`/complete-implementation\` when ready for testing.
+**For Verification Tasks:** Comment \`/approve\` when verification is complete.
+
+Task will be **auto-unassigned** upon completion.`
+            });
+      
+      - name: Handle Complete-Implementation Command
+        if: steps.parse.outputs.command == 'complete-implementation'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const actor = '${{ steps.parse.outputs.actor }}';
+            const currentState = '${{ steps.current_state.outputs.current_state }}';
+            
+            // Validate state
+            if (currentState !== 'state: implementing') {
+              core.setFailed(`Cannot complete-implementation from ${currentState}. Must be in state: implementing`);
+              return;
+            }
+            
+            // Remove implementing state label
+            try {
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                name: 'state: implementing'
+              });
+            } catch (e) {
+              console.log('Could not remove implementing label:', e.message);
+            }
+            
+            // Add testing state label
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: ['state: testing']
+            });
+            
+            // AUTO-UNASSIGN: Remove assignee
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              assignees: []
+            });
+            
+            // Post completion comment
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `✅ **Implementation Completed by @${actor}**
+
+This issue has been transitioned from implementing to testing phase.
+**Task has been unassigned** and is now available for QA agents to claim.
+
+**Next Steps:**
+1. QA agents can claim this task using \`/claim\`
+2. Testing will be performed
+3. Issue will move to verification
+
+Thank you for the implementation!`
             });
 
   handle_label_changes:
