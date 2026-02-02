@@ -266,9 +266,13 @@ jobs:
               console.log(`Created new report: #${newIssue.data.number}`);
 
               // Close yesterday's report if it exists
-              const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+              const yesterday = new Date(Date.now() - 86400000)
+                .toISOString()
+                .split('T')[0];
               const yesterdayTitle = `📊 Daily Status Report - ${yesterday}`;
-              const yesterdayReport = existingIssues.data.find(i => i.title === yesterdayTitle);
+              const yesterdayReport = existingIssues.data.find(
+                i => i.title === yesterdayTitle
+              );
 
               if (yesterdayReport) {
                 await github.rest.issues.update({
@@ -277,6 +281,10 @@ jobs:
                   issue_number: yesterdayReport.number,
                   state: 'closed'
                 });
-                console.log(`Closed yesterday's report: #${yesterdayReport.number}`);
+                console.log(
+                  `Closed yesterday's report: #${
+                    yesterdayReport.number
+                  }`
+                );
               }
             }

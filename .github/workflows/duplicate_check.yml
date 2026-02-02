@@ -29,7 +29,9 @@ jobs:
             console.log(`Key terms: ${titleWords.join(', ')}`);
 
             // Search all issues (open and closed)
-            const allIssues = await github.paginate(github.rest.issues.listForRepo, {
+            const allIssues = await github.paginate(
+              github.rest.issues.listForRepo,
+              {
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: 'all',
@@ -78,17 +80,22 @@ jobs:
               console.log(`Found ${similarIssues.length} similar issues`);
 
               let warningMessage = `⚠️ **Potential Duplicate Detected**\n\n`;
-              warningMessage += `This issue may be similar to existing issues. Please review before proceeding:\n\n`;
+              warningMessage +=
+                `This issue may be similar to existing issues. ` +
+                `Please review before proceeding:\n\n`;
 
               for (const similar of similarIssues.slice(0, 5)) {
-                warningMessage += `- #${similar.number}: ${similar.title} (${similar.state}) - [View](${similar.url})\n`;
+                warningMessage +=
+                  `- #${similar.number}: ${similar.title} ` +
+                  `(${similar.state}) - [View](${similar.url})\n`;
               }
 
               warningMessage += `\n**If this is a duplicate:**\n`;
               warningMessage += `1. Close this issue\n`;
               warningMessage += `2. Comment on the original issue instead\n\n`;
               warningMessage += `**If this is NOT a duplicate:**\n`;
-              warningMessage += `1. Add a comment explaining how this differs\n`;
+              warningMessage +=
+                `1. Add a comment explaining how this differs\n`;
               warningMessage += `2. Proceed with normal triage\n`;
 
               await github.rest.issues.createComment({
