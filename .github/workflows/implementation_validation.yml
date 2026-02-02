@@ -19,18 +19,18 @@ jobs:
               repo: context.repo.repo,
               issue_number: issue.number
             });
-            
+
             // Check for implementation indicators
             const allComments = comments.data.map(c => c.body).join('\n').toLowerCase();
-            
-            const hasCodeIndicators = allComments.includes('pr') || 
+
+            const hasCodeIndicators = allComments.includes('pr') ||
                                      allComments.includes('commit') ||
                                      allComments.includes('code') ||
                                      allComments.includes('implementation complete');
-            
-            const hasDocumentationOnly = allComments.includes('documentation') && 
+
+            const hasDocumentationOnly = allComments.includes('documentation') &&
                                         !hasCodeIndicators;
-            
+
             if (hasDocumentationOnly) {
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
