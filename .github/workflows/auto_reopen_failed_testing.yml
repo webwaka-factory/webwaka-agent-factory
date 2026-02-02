@@ -66,7 +66,10 @@ jobs:
                 'reopened-from-failed-testing'
               ]
             });
-            console.log('Added implementing, needs-claiming, and reopened-from-failed-testing labels');
+            console.log(
+              'Added implementing, needs-claiming, and '
+              + 'reopened-from-failed-testing labels'
+            );
 
       - name: Unassign Issue
         if: steps.check.outputs.should_reopen == 'true'
@@ -89,9 +92,11 @@ jobs:
             const msg = [
               '🔄 **AUTOMATICALLY REOPENED - Failed Testing**',
               '',
-              '**Factory Policy:** Any issue that fails testing MUST be reopened and NEVER closed.',
+              '**Factory Policy:** Any issue that fails testing MUST '
+              + 'be reopened and NEVER closed.',
               '',
-              '**Status:** Transitioned from `state: failed-testing` → `state: implementing`',
+              '**Status:** Transitioned from `state: failed-testing` '
+              + '→ `state: implementing`',
               '',
               '**Labels Added:**',
               '- `needs-claiming` - **Ready for an agent to claim**',
@@ -112,7 +117,9 @@ jobs:
               '5. When ready, comment: `/complete-implementation`',
               '',
               '**Why This Happened:**',
-              'Testing revealed issues that need to be addressed. This is part of our quality assurance process. Thank you for the thorough testing!',
+              'Testing revealed issues that need to be addressed. '
+              + 'This is part of our quality assurance process. '
+              + 'Thank you for the thorough testing!',
               '',
               '**Status:** ⏳ Waiting for an agent to claim and fix'
             ].join('\n');
