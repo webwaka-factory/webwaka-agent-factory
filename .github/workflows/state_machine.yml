@@ -302,7 +302,7 @@ jobs:
             });
 
   auto_reopen_failed_testing:
-    if: ${{ contains(github.event.issue.labels.*.name, 'state:failed-testing') }}
+    if: contains(github.event.issue.labels.*.name, 'state: failed-testing')
     runs-on: ubuntu-latest
     permissions:
       issues: write

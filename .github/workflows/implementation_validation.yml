@@ -6,7 +6,7 @@ on:
 
 jobs:
   validate_implementation:
-    if: ${{ contains(github.event.issue.labels.*.name, 'state:verification') }}
+    if: contains(github.event.issue.labels.*.name, 'state: verification')
     runs-on: ubuntu-latest
     steps:
       - name: Check Implementation Completeness
