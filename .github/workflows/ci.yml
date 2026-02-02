@@ -379,16 +379,27 @@ jobs:
 
             | Check | Status |
             |-------|--------|
-            | Validation | ${validateResult === 'success' ? '✅ Passed' : '❌ Failed'} |
-            | Lint | ${lintResult === 'success' ? '✅ Passed' : '❌ Failed'} |
-            | Tests | ${testResult === 'success' ? '✅ Passed' : '❌ Failed'} |
-            | Security | ${securityResult === 'success' ? '✅ Passed' : '❌ Failed'} |
+            | Validation | ${
+              validateResult === 'success' ? '✅ Passed' : '❌ Failed'
+            } |
+            | Lint | ${
+              lintResult === 'success' ? '✅ Passed' : '❌ Failed'
+            } |
+            | Tests | ${
+              testResult === 'success' ? '✅ Passed' : '❌ Failed'
+            } |
+            | Security | ${
+              securityResult === 'success' ? '✅ Passed' : '❌ Failed'
+            } |
 
             **Result:** ${statusText}
 
             ---
-            *This CI pipeline enforces a strict "no fallback" policy. All checks must pass before merge is allowed.*
-            *See [CI No Fallback Policy](../docs/CI_NO_FALLBACK_POLICY.md) for details.*
+            *This CI pipeline enforces a strict "no fallback"
+            policy. All checks must pass before merge is
+            allowed.*
+            *See [CI No Fallback Policy](
+            ../docs/CI_NO_FALLBACK_POLICY.md) for details.*
             `;
 
             // Find existing CI comment or create new one
@@ -398,7 +409,9 @@ jobs:
               issue_number: context.issue.number
             });
 
-            const ciComment = comments.data.find(c => c.body.includes('CI Status Report'));
+            const ciComment = comments.data.find(
+              c => c.body.includes('CI Status Report')
+            );
 
             if (ciComment) {
               await github.rest.issues.updateComment({
