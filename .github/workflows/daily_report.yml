@@ -19,7 +19,9 @@ jobs:
             const today = new Date().toISOString().split('T')[0];
 
             // Fetch all open issues
-            const openIssues = await github.paginate(github.rest.issues.listForRepo, {
+            const openIssues = await github.paginate(
+              github.rest.issues.listForRepo,
+              {
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: 'open',
@@ -41,8 +43,12 @@ jobs:
               const stateLabel = issue.labels.find(l => l.name.startsWith('state:'));
               const state = stateLabel ? stateLabel.name : 'unknown';
 
-              const priorityLabel = issue.labels.find(l => l.name.startsWith('priority:'));
-              const priority = priorityLabel ? priorityLabel.name : 'priority: medium';
+              const priorityLabel = issue.labels.find(
+                l => l.name.startsWith('priority:')
+              );
+              const priority = priorityLabel
+                ? priorityLabel.name
+                : 'priority: medium';
 
               // By state
               if (!byState[state]) byState[state] = [];
@@ -92,8 +98,13 @@ jobs:
             for (const state of stateOrder) {
               const stateIssues = byState[state] || [];
               if (stateIssues.length > 0) {
-                const issueLinks = stateIssues.map(i => `#${i.number}`).join(', ');
-                report += `| \`${state}\` | ${stateIssues.length} | ${issueLinks} |\n`;
+                const issueLinks = stateIssues
+                  .map(i => `#${i.number}`)
+                  .join(', ');
+                report +=
+                  `| \`${state}\` | ${stateIssues.length} | ${
+                    issueLinks
+                  } |\n`;
               }
             }
 
