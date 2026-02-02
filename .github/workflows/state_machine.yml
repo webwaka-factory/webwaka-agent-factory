@@ -21,20 +21,20 @@ jobs:
             const issue = context.payload.issue;
             const comment = context.payload.comment;
             const actor = comment.user.login;
-
+            
             // Extract command
             const commandMatch = comment.body.match(/^\/(\w+)(?:\s+(.*))?$/m);
             if (!commandMatch) return;
-
+            
             const command = commandMatch[1];
             const args = commandMatch[2] || '';
-
+            
             console.log(`Processing command: /${command}`);
-
+            
             // Get current state
             const stateLabel = issue.labels.find(l => l.name.startsWith('state:'));
             const currentState = stateLabel ? stateLabel.name.replace('state: ', '') : 'unknown';
-
+            
             // CLAIM COMMAND - Only command that assigns
             if (command === 'claim') {
               // Check if already assigned
@@ -47,7 +47,7 @@ jobs:
                 });
                 return;
               }
-
+              
               // Assign to the actor
               await github.rest.issues.addAssignees({
                 owner: context.repo.owner,
@@ -55,7 +55,7 @@ jobs:
                 issue_number: context.issue.number,
                 assignees: [actor]
               });
-
+              
               // Update state to implementing if ready-for-implementation
               if (currentState === 'ready-for-implementation') {
                 await github.rest.issues.removeLabel({
@@ -64,7 +64,7 @@ jobs:
                   issue_number: issue.number,
                   name: 'state: ready-for-implementation'
                 });
-
+                
                 await github.rest.issues.addLabels({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
@@ -72,9 +72,9 @@ jobs:
                   labels: ['state: implementing']
                 });
               }
-
+              
               const msg = `✅ **Claimed by @${actor}**\n\nThis task is now assigned to you. Please follow the instructions and update status as you progress.\n\n**Next Steps:**\n- For Testing: Use \`/complete-testing\` when done\n- For Implementation: Use \`/complete-implementation\` when done\n- For Verification: Use \`/approve\` when done\n- If Tests Fail: Use \`/fail-testing <reason>\`\n\nTask will be **auto-unassigned** upon completion.\n\nNeed help? Type \`/help\``;
-
+              
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -83,7 +83,7 @@ jobs:
               });
               return;
             }
-
+            
             // COMPLETE-TESTING COMMAND - Unassign and transition
             if (command === 'complete-testing') {
               if (currentState !== 'testing') {
@@ -95,7 +95,7 @@ jobs:
                 });
                 return;
               }
-
+              
               // Remove testing label
               await github.rest.issues.removeLabel({
                 owner: context.repo.owner,
@@ -103,7 +103,7 @@ jobs:
                 issue_number: issue.number,
                 name: 'state: testing'
               });
-
+              
               // Add verification label
               await github.rest.issues.addLabels({
                 owner: context.repo.owner,
@@ -111,7 +111,7 @@ jobs:
                 issue_number: issue.number,
                 labels: ['state: verification']
               });
-
+              
               // UNASSIGN - Do NOT assign to anyone
               await github.rest.issues.removeAssignees({
                 owner: context.repo.owner,
@@ -119,9 +119,9 @@ jobs:
                 issue_number: context.issue.number,
                 assignees: [actor]
               });
-
+              
               const msg = `✅ **Testing Completed by @${actor}**\n\nThis issue has been transitioned to verification phase.\n**Task has been unassigned** and is ready for next phase.\n\nThank you for thorough testing!`;
-
+              
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -130,7 +130,7 @@ jobs:
               });
               return;
             }
-
+            
             // FAIL-TESTING COMMAND - Unassign and reopen
             if (command === 'fail-testing') {
               if (currentState !== 'testing') {
@@ -142,7 +142,7 @@ jobs:
                 });
                 return;
               }
-
+              
               // Remove testing label
               await github.rest.issues.removeLabel({
                 owner: context.repo.owner,
@@ -150,7 +150,7 @@ jobs:
                 issue_number: issue.number,
                 name: 'state: testing'
               });
-
+              
               // Add failed-testing label
               await github.rest.issues.addLabels({
                 owner: context.repo.owner,
@@ -158,7 +158,7 @@ jobs:
                 issue_number: issue.number,
                 labels: ['state: failed-testing']
               });
-
+              
               // UNASSIGN - Do NOT assign to anyone
               await github.rest.issues.removeAssignees({
                 owner: context.repo.owner,
@@ -166,9 +166,9 @@ jobs:
                 issue_number: context.issue.number,
                 assignees: [actor]
               });
-
+              
               const msg = `❌ **Testing Failed by @${actor}**\n\nFailure Reason:\n${args || 'See comments above for details'}\n\nThis issue has been reopened for remediation.\n**Task has been unassigned** and is ready for another agent to fix.\n\nThank you for thorough testing!`;
-
+              
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -177,7 +177,7 @@ jobs:
               });
               return;
             }
-
+            
             // COMPLETE-IMPLEMENTATION COMMAND - Unassign and transition
             if (command === 'complete-implementation') {
               if (currentState !== 'implementing') {
@@ -189,7 +189,7 @@ jobs:
                 });
                 return;
               }
-
+              
               // Remove implementing label
               await github.rest.issues.removeLabel({
                 owner: context.repo.owner,
@@ -197,7 +197,7 @@ jobs:
                 issue_number: issue.number,
                 name: 'state: implementing'
               });
-
+              
               // Add testing label
               await github.rest.issues.addLabels({
                 owner: context.repo.owner,
@@ -205,7 +205,7 @@ jobs:
                 issue_number: issue.number,
                 labels: ['state: testing']
               });
-
+              
               // UNASSIGN - Do NOT assign to anyone
               await github.rest.issues.removeAssignees({
                 owner: context.repo.owner,
@@ -213,9 +213,9 @@ jobs:
                 issue_number: context.issue.number,
                 assignees: [actor]
               });
-
+              
               const msg = `✅ **Implementation Completed by @${actor}**\n\nThis issue has been transitioned to testing phase.\n**Task has been unassigned** and is ready for QA agents to claim.\n\nThank you for the implementation!`;
-
+              
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -224,7 +224,7 @@ jobs:
               });
               return;
             }
-
+            
             // APPROVE COMMAND - Unassign and close
             if (command === 'approve') {
               if (currentState !== 'verification') {
@@ -236,7 +236,7 @@ jobs:
                 });
                 return;
               }
-
+              
               // Remove verification label
               await github.rest.issues.removeLabel({
                 owner: context.repo.owner,
@@ -244,7 +244,7 @@ jobs:
                 issue_number: issue.number,
                 name: 'state: verification'
               });
-
+              
               // Add closed label
               await github.rest.issues.addLabels({
                 owner: context.repo.owner,
@@ -252,7 +252,7 @@ jobs:
                 issue_number: issue.number,
                 labels: ['state: closed']
               });
-
+              
               // UNASSIGN - Do NOT assign to anyone
               await github.rest.issues.removeAssignees({
                 owner: context.repo.owner,
@@ -260,7 +260,7 @@ jobs:
                 issue_number: context.issue.number,
                 assignees: [actor]
               });
-
+              
               // Close the issue
               await github.rest.issues.update({
                 owner: context.repo.owner,
@@ -268,9 +268,9 @@ jobs:
                 issue_number: issue.number,
                 state: 'closed'
               });
-
+              
               const msg = `✅ **Approved by @${actor}**\n\nThis issue has been verified and approved. Status: \`state: closed\`\n\nThank you for completing this task!`;
-
+              
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -279,11 +279,11 @@ jobs:
               });
               return;
             }
-
+            
             // HELP COMMAND
             if (command === 'help') {
               const helpMsg = `📚 **Available Commands**\n\n\`/claim\` - Claim this task\n\`/complete-implementation\` - Mark implementation complete\n\`/complete-testing\` - Mark testing complete\n\`/fail-testing <reason>\` - Report test failure\n\`/approve\` - Approve and close\n\`/help\` - Show this help\n\n**Common Mistakes:**\n❌ \`/state testing\` - NOT valid\n✅ Use \`/complete-testing\` instead`;
-
+              
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -292,7 +292,7 @@ jobs:
               });
               return;
             }
-
+            
             // Unknown command
             await github.rest.issues.createComment({
               owner: context.repo.owner,
@@ -302,7 +302,7 @@ jobs:
             });
 
   auto_reopen_failed_testing:
-    if: contains(github.event.issue.labels.*.name, 'state: failed-testing')
+    if: ${{ contains(github.event.issue.labels.*.name, 'state:failed-testing') }}
     runs-on: ubuntu-latest
     permissions:
       issues: write
@@ -312,7 +312,7 @@ jobs:
         with:
           script: |
             const issue = context.payload.issue;
-
+            
             // Remove failed-testing label
             await github.rest.issues.removeLabel({
               owner: context.repo.owner,
@@ -320,7 +320,7 @@ jobs:
               issue_number: issue.number,
               name: 'state: failed-testing'
             });
-
+            
             // Add implementing label
             await github.rest.issues.addLabels({
               owner: context.repo.owner,
@@ -328,7 +328,7 @@ jobs:
               issue_number: issue.number,
               labels: ['state: implementing', 'needs-claiming', 'reopened-from-failed-testing']
             });
-
+            
             // ENSURE UNASSIGNED
             if (issue.assignees && issue.assignees.length > 0) {
               const assigneeNames = issue.assignees.map(a => a.login);
@@ -339,9 +339,9 @@ jobs:
                 assignees: assigneeNames
               });
             }
-
+            
             const msg = `🔄 **Reopened for Remediation**\n\nThis issue failed testing and has been reopened.\n\n**Status:** \`state: implementing\` (unassigned)\n**Label:** \`needs-claiming\` - Ready for agent to claim\n\nTo claim this task, comment: \`/claim\``;
-
+            
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
