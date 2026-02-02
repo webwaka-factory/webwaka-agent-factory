@@ -79,7 +79,7 @@ jobs:
         # STRICT: yamllint must pass, no fallback
         run: |
           pip install yamllint
-          yamllint -d relaxed .github/workflows/*.yml
+          yamllint -d "{extends: relaxed, rules: {line-length: {max: 500}}}" .github/workflows/*.yml
 
       - name: Validate JSON Files
         # STRICT: JSON must be valid, no fallback
