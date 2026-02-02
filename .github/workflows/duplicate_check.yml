@@ -8,7 +8,7 @@ jobs:
   check_duplicates:
     name: Check for Duplicate Issues
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Search for Similar Issues
         id: search
@@ -18,16 +18,16 @@ jobs:
             const currentIssue = context.payload.issue;
             const currentTitle = currentIssue.title.toLowerCase();
             const currentBody = (currentIssue.body || '').toLowerCase();
-            
+
             // Extract key terms from title
             const titleWords = currentTitle
               .replace(/[^\w\s]/g, ' ')
               .split(/\s+/)
               .filter(w => w.length > 3);
-            
+
             console.log(`Checking for duplicates of: "${currentIssue.title}"`);
             console.log(`Key terms: ${titleWords.join(', ')}`);
-            
+
             // Search all issues (open and closed)
             const allIssues = await github.paginate(github.rest.issues.listForRepo, {
               owner: context.repo.owner,
@@ -35,31 +35,31 @@ jobs:
               state: 'all',
               per_page: 100
             });
-            
+
             // Calculate similarity scores
             const similarIssues = [];
-            
+
             for (const issue of allIssues) {
               if (issue.number === currentIssue.number) continue;
               if (issue.pull_request) continue; // Skip PRs
-              
+
               const issueTitle = issue.title.toLowerCase();
               const issueBody = (issue.body || '').toLowerCase();
-              
+
               let score = 0;
-              
+
               // Title similarity
               for (const word of titleWords) {
                 if (issueTitle.includes(word)) score += 2;
                 if (issueBody.includes(word)) score += 1;
               }
-              
+
               // Check for exact phrase matches
               const titlePhrases = currentTitle.match(/\b\w+\s+\w+\b/g) || [];
               for (const phrase of titlePhrases) {
                 if (issueTitle.includes(phrase)) score += 5;
               }
-              
+
               if (score > 5) {
                 similarIssues.push({
                   number: issue.number,
@@ -70,39 +70,39 @@ jobs:
                 });
               }
             }
-            
+
             // Sort by score
             similarIssues.sort((a, b) => b.score - a.score);
-            
+
             if (similarIssues.length > 0) {
               console.log(`Found ${similarIssues.length} similar issues`);
-              
+
               let warningMessage = `⚠️ **Potential Duplicate Detected**\n\n`;
               warningMessage += `This issue may be similar to existing issues. Please review before proceeding:\n\n`;
-              
+
               for (const similar of similarIssues.slice(0, 5)) {
                 warningMessage += `- #${similar.number}: ${similar.title} (${similar.state}) - [View](${similar.url})\n`;
               }
-              
+
               warningMessage += `\n**If this is a duplicate:**\n`;
               warningMessage += `1. Close this issue\n`;
               warningMessage += `2. Comment on the original issue instead\n\n`;
               warningMessage += `**If this is NOT a duplicate:**\n`;
               warningMessage += `1. Add a comment explaining how this differs\n`;
               warningMessage += `2. Proceed with normal triage\n`;
-              
+
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: currentIssue.number,
                 body: warningMessage
               });
-              
+
               core.setOutput('has_duplicates', 'true');
               core.setOutput('duplicate_count', similarIssues.length);
             } else {
               console.log('No similar issues found');
               core.setOutput('has_duplicates', 'false');
             }
-            
+
             return similarIssues;
