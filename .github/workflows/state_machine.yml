@@ -32,8 +32,12 @@ jobs:
             console.log(`Processing command: /${command}`);
 
             // Get current state
-            const stateLabel = issue.labels.find(l => l.name.startsWith('state:'));
-            const currentState = stateLabel ? stateLabel.name.replace('state: ', '') : 'unknown';
+            const stateLabel = issue.labels.find(
+              l => l.name.startsWith('state:')
+            );
+            const currentState = stateLabel
+              ? stateLabel.name.replace('state: ', '')
+              : 'unknown';
 
             // CLAIM COMMAND - Only command that assigns
             if (command === 'claim') {
@@ -43,7 +47,11 @@ jobs:
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: issue.number,
-                  body: `❌ **Already Assigned**\n\nThis task is already assigned to @${issue.assignees[0].login}. Please choose another task.`
+                  body:
+                    `❌ **Already Assigned**\n\n` +
+                    `This task is already assigned to ` +
+                    `@${issue.assignees[0].login}. ` +
+                    `Please choose another task.`
                 });
                 return;
               }
