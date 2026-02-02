@@ -31,7 +31,8 @@ jobs:
         with:
           script: |
             // STRICT: PRs MUST reference an issue
-            // NO FALLBACK: This step will fail the entire workflow if no issue is referenced
+            // NO FALLBACK: This step will fail the entire
+            // workflow if no issue is referenced
 
             if (context.eventName !== 'pull_request') {
               console.log('Not a PR event, skipping validation');
@@ -279,7 +280,10 @@ jobs:
               permissions = workflow.get('permissions', {})
 
               if permissions == 'write-all':
-                  print(f'⚠️ {filename}: Uses write-all permissions (too permissive)')
+                  print(
+                      f'⚠️ {filename}: Uses write-all '
+                      f'permissions (too permissive)'
+                  )
                   issues_found += 1
 
               # Check for dangerous patterns in scripts
@@ -289,7 +293,10 @@ jobs:
 
                       # Check for dangerous patterns
                       if 'curl | bash' in run_cmd or 'curl | sh' in run_cmd:
-                          print(f'⚠️ {filename}/{job_name}: Contains curl pipe to shell')
+                          print(
+                              f'⚠️ {filename}/{job_name}: '
+                              f'Contains curl pipe to shell'
+                          )
                           issues_found += 1
 
           if issues_found > 0:
@@ -353,18 +360,22 @@ jobs:
             const validateResult = '${{ needs.validate.result }}';
             const lintResult = '${{ needs.lint.result }}';
             const testResult = '${{ needs.test.result }}';
-            const securityResult = 
+            const securityResult =
               '${{ needs.security.result }}';
 
-            const allPassed = validateResult === 'success' &&
-                              lintResult === 'success' &&
-                              testResult === 'success' &&
-                              securityResult === 'success';
+            const allPassed =
+              validateResult === 'success' &&
+              lintResult === 'success' &&
+              testResult === 'success' &&
+              securityResult === 'success';
 
             const statusEmoji = allPassed ? '✅' : '❌';
-            const statusText = allPassed ? 'All CI checks passed!' : 'CI checks failed - deployment blocked';
+            const statusText = allPassed
+              ? 'All CI checks passed!'
+              : 'CI checks failed - deployment blocked';
 
-            const summary = `## ${statusEmoji} CI Status Report
+            const summary =
+              `## ${statusEmoji} CI Status Report
 
             | Check | Status |
             |-------|--------|
