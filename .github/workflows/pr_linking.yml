@@ -98,15 +98,17 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: issueNumber,
-                body: `✅ **Pull Request Opened**
-
-**PR:** #${{ github.event.pull_request.number }}
-**Author:** @${{ github.event.pull_request.user.login }}
-**State:** \`${currentState}\` → \`state: implemented\`
-
-CI tests will run automatically. The issue will transition to \`state: testing\` once tests complete.
-
-**Note:** This issue remains unassigned. QA agents can claim it using \`/claim\` when ready to test.`
+                body: [
+                  '✅ **Pull Request Opened**',
+                  '',
+                  `**PR:** #${context.payload.pull_request.number}`,
+                  `**Author:** @${context.payload.pull_request.user.login}`,
+                  `**State:** \`${currentState}\` → \`state: implemented\``,
+                  '',
+                  'CI tests will run automatically. The issue will transition to `state: testing` once tests complete.',
+                  '',
+                  '**Note:** This issue remains unassigned. QA agents can claim it using `/claim` when ready to test.'
+                ].join('\n')
               });
               
               console.log(`Transitioned issue #${issueNumber} to 'state: implemented' (NO AUTO-ASSIGNMENT)`);
