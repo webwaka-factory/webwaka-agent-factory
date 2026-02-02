@@ -56,7 +56,10 @@ jobs:
 
             if (!hasIssueRef) {
               // STRICT FAILURE - No fallback, no continue-on-error
-              core.setFailed('❌ PR must reference an issue using "Resolves #N" or "Fixes #N" in the body or title.');
+              core.setFailed(
+                '❌ PR must reference an issue using ' +
+                '"Resolves #N" or "Fixes #N" in the body or title.'
+              );
             }
 
             console.log('✅ Issue reference found');
@@ -94,7 +97,9 @@ jobs:
           # Check all markdown files
           find . -name "*.md" -type f | while read file; do
             echo "Checking links in $file"
-            markdown-link-check "$file" --config .github/markdown-link-check-config.json 2>/dev/null || \
+            markdown-link-check "$file" \
+              --config .github/markdown-link-check-config.json \
+              2>/dev/null || \
             markdown-link-check "$file" --quiet
           done
 
@@ -233,7 +238,10 @@ jobs:
           FOUND_SECRETS=0
 
           for pattern in "${PATTERNS[@]}"; do
-            if grep -rniE "$pattern" --include="*.yml" --include="*.yaml" --include="*.json" --include="*.md" . 2>/dev/null | grep -v "example" | grep -v "placeholder"; then
+            if grep -rniE "$pattern" \
+              --include="*.yml" --include="*.yaml" \
+              --include="*.json" --include="*.md" . 2>/dev/null | \
+              grep -v "example" | grep -v "placeholder"; then
               echo "⚠️ Potential secret found matching pattern: $pattern"
               FOUND_SECRETS=1
             fi
@@ -345,7 +353,8 @@ jobs:
             const validateResult = '${{ needs.validate.result }}';
             const lintResult = '${{ needs.lint.result }}';
             const testResult = '${{ needs.test.result }}';
-            const securityResult = '${{ needs.security.result }}';
+            const securityResult = 
+              '${{ needs.security.result }}';
 
             const allPassed = validateResult === 'success' &&
                               lintResult === 'success' &&
