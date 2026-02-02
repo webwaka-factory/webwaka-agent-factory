@@ -12,7 +12,7 @@ jobs:
   auto_reopen_failed_testing:
     name: Auto-Reopen Failed Testing Issues
     runs-on: ubuntu-latest
-    if: github.event.label.name == 'state:failed-testing'
+    if: "github.event.label.name == 'state: failed-testing'"
 
     steps:
       - name: Check if Issue is Failed Testing
@@ -86,36 +86,34 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const msg = [
-              '🔄 **AUTOMATICALLY REOPENED - Failed Testing**',
-              '',
-              '**Factory Policy:** Any issue that fails testing MUST be reopened and NEVER closed.',
-              '',
-              '**Status:** Transitioned from `state: failed-testing` → `state: implementing`',
-              '',
-              '**Labels Added:**',
-              '- `needs-claiming` - **Ready for an agent to claim**',
-              '- `reopened-from-failed-testing` - Tracking label',
-              '- `state: implementing` - Current state',
-              '',
-              '**What Happened:**',
-              '- Testing was not successful',
-              '- Issue has been automatically reopened for remediation',
-              '- Task has been unassigned',
-              '- **This issue is now ready to be claimed by another agent**',
-              '',
-              '**How to Claim This Issue:**',
-              '1. Comment on this issue: `/claim`',
-              '2. You will be assigned to this issue',
-              '3. Review the failure reasons in previous comments',
-              '4. Fix the issues that caused the test failure',
-              '5. When ready, comment: `/complete-implementation`',
-              '',
-              '**Why This Happened:**',
-              'Testing revealed issues that need to be addressed. This is part of our quality assurance process. Thank you for the thorough testing!',
-              '',
-              '**Status:** ⏳ Waiting for an agent to claim and fix'
-            ].join('\n');
+            const msg = `🔄 **AUTOMATICALLY REOPENED - Failed Testing**
+
+**Factory Policy:** Any issue that fails testing MUST be reopened and NEVER closed.
+
+**Status:** Transitioned from \\\`state: failed-testing\\\` → \\\`state: implementing\\\`
+
+**Labels Added:**
+- \\\`needs-claiming\\\` - **Ready for an agent to claim**
+- \\\`reopened-from-failed-testing\\\` - Tracking label
+- \\\`state: implementing\\\` - Current state
+
+**What Happened:**
+- Testing was not successful
+- Issue has been automatically reopened for remediation
+- Task has been unassigned
+- **This issue is now ready to be claimed by another agent**
+
+**How to Claim This Issue:**
+1. Comment on this issue: \\\`/claim\\\`
+2. You will be assigned to this issue
+3. Review the failure reasons in previous comments
+4. Fix the issues that caused the test failure
+5. When ready, comment: \\\`/complete-implementation\\\`
+
+**Why This Happened:**
+Testing revealed issues that need to be addressed. This is part of our quality assurance process. Thank you for the thorough testing!
+
+**Status:** ⏳ Waiting for an agent to claim and fix`;
 
             await github.rest.issues.createComment({
               owner: context.repo.owner,
