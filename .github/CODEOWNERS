@@ -1,0 +1,20 @@
+# WebWaka Agent Factory CODEOWNERS
+# This file defines code ownership and required reviewers for the agent factory
+
+# Factory operations and orchestration - Chief of Staff
+/src/factory/ @webwaka-factory/chief-of-staff
+/src/orchestration/ @webwaka-factory/execution-coordination
+
+# Quality gates and testing - Quality Assurance
+/tests/ @webwaka-factory/quality-assurance
+/src/quality/ @webwaka-factory/quality-assurance
+
+# Security and compliance - Security team
+/src/security/ @webwaka-factory/security
+/docs/security/ @webwaka-factory/security
+
+# Documentation - Documentation team
+/docs/ @webwaka-factory/documentation
+
+# Default owners
+* @webwaka-factory/chief-of-staff
