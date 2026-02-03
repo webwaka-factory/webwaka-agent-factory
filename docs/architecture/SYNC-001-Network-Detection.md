@@ -66,4 +66,4 @@ The network detection module is designed to be easily integrated with other comp
 
 **References**
 
-[1] WebWaka Agent Factory, "SYNC-002 — Automatic Sync Engine", [https://github.com/webwakaagent1/webwaka-agent-factory/issues/44](https://github.com/webwakaagent1/webwaka-agent-factory/issues/44)
+[1] WebWaka Agent Factory, "SYNC-002 — Automatic Sync Engine", [https://github.com/webwaka-factory/webwaka-agent-factory/issues/44](https://github.com/webwaka-factory/webwaka-agent-factory/issues/44)

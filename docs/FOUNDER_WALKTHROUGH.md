@@ -84,7 +84,7 @@ The system handles this automatically.
 - **Tool:** [Agent Factory Kanban Board](https://github.com/users/webwakaagent1/projects/1)
 - **How:** The board provides a real-time, drag-and-drop view of all tasks. The "Implementing" column shows every task currently being worked on and who it is assigned to.
 
-- **Tool:** [Daily Status Report](https://github.com/webwakaagent1/webwaka-agent-factory/issues?q=is%3Aopen+is%3Aissue+label%3Areport)
+- **Tool:** [Daily Status Report](https://github.com/webwaka-factory/webwaka-agent-factory/issues?q=is%3Aopen+is%3Aissue+label%3Areport)
 - **How:** The "Active Agents" section of the daily report lists every agent with assigned tasks.
 
 ### Control: "How do I stop or change something?"

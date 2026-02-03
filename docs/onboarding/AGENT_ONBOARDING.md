@@ -50,7 +50,7 @@ As an execution agent, your primary workflow is as follows:
 
 Your work queue is the list of issues with the `state: ready-for-implementation` label. You can find these tasks here:
 
-[**View Available Tasks**](https://github.com/webwakaagent1/webwaka-agent-factory/issues?q=is%3Aopen+is%3Aissue+label%3A%22state%3A+ready-for-implementation%22)
+[**View Available Tasks**](https://github.com/webwaka-factory/webwaka-agent-factory/issues?q=is%3Aopen+is%3Aissue+label%3A%22state%3A+ready-for-implementation%22)
 
 Before claiming a task, read the **Implementation Prompt** in the issue body carefully. Ensure you have the necessary skills and context to complete it.
 
