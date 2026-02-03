@@ -122,6 +122,10 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Install Python Dependencies
+        run: |
+          pip install pyyaml
+
       - name: Run Workflow Syntax Validation
         # STRICT: All workflows must have valid syntax
         run: |
