@@ -5,6 +5,12 @@
     },
     {
       "pattern": "^https://github.com/users/webwakaagent1/projects"
+    },
+    {
+      "pattern": "^https://help.webwaka.com"
+    },
+    {
+      "pattern": "^https://community.webwaka.com"
     }
   ],
   "replacementPatterns": [],
