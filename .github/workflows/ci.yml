@@ -99,9 +99,7 @@ jobs:
           find . -name "*.md" -type f | while read file; do
             echo "Checking links in $file"
             markdown-link-check "$file" \
-              --config .github/markdown-link-check-config.json \
-              2>/dev/null || \
-            markdown-link-check "$file" --quiet
+              --config .github/markdown-link-check-config.json
           done
 
   # Test job - runs all tests
