@@ -216,7 +216,7 @@ Before merging any workflow changes, verify:
 
 ## Related Documentation
 
-- [CI Workflow Configuration](.github/workflows/ci.yml)
+- [CI Workflow Configuration](../.github/workflows/ci.yml)
 - [State Machine Specification](STATE_MACHINE.md)
 - [Agent Onboarding Guide](onboarding/AGENT_ONBOARDING.md)
 

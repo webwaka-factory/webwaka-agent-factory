@@ -6,7 +6,7 @@ on:
 
 jobs:
   validate_implementation:
-    if: contains(github.event.issue.labels.*.name, 'state: verification')
+    if: ${{ contains(github.event.issue.labels.*.name, 'state:verification') }}
     runs-on: ubuntu-latest
     steps:
       - name: Check Implementation Completeness
@@ -21,15 +21,20 @@ jobs:
             });
 
             // Check for implementation indicators
-            const allComments = comments.data.map(c => c.body).join('\n').toLowerCase();
+            const allComments = comments.data
+              .map(c => c.body)
+              .join('\n')
+              .toLowerCase();
 
-            const hasCodeIndicators = allComments.includes('pr') ||
-                                     allComments.includes('commit') ||
-                                     allComments.includes('code') ||
-                                     allComments.includes('implementation complete');
+            const hasCodeIndicators =
+              allComments.includes('pr') ||
+              allComments.includes('commit') ||
+              allComments.includes('code') ||
+              allComments.includes('implementation complete');
 
-            const hasDocumentationOnly = allComments.includes('documentation') &&
-                                        !hasCodeIndicators;
+            const hasDocumentationOnly =
+              allComments.includes('documentation') &&
+              !hasCodeIndicators;
 
             if (hasDocumentationOnly) {
               await github.rest.issues.createComment({
