@@ -54,4 +54,4 @@ Default: **Last-Write-Wins**
 
 **References**
 
-[1] WebWaka Agent Factory, "TXQ-001 — Transaction Queue", [https://github.com/webwakaagent1/webwaka-agent-factory/issues/37](https://github.com/webwakaagent1/webwaka-agent-factory/issues/37)
+[1] WebWaka Agent Factory, "TXQ-001 — Transaction Queue", [https://github.com/webwaka-factory/webwaka-agent-factory/issues/37](https://github.com/webwaka-factory/webwaka-agent-factory/issues/37)
