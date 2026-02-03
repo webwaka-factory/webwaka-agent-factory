@@ -66,6 +66,6 @@ graph TD
 
 **References**
 
-[1] WebWaka Agent Factory, "SYNC-001 — Network Reconnect Detection", [https://github.com/webwakaagent1/webwaka-agent-factory/issues/43](https://github.com/webwakaagent1/webwaka-agent-factory/issues/43)
+[1] WebWaka Agent Factory, "SYNC-001 — Network Reconnect Detection", [https://github.com/webwaka-factory/webwaka-agent-factory/issues/43](https://github.com/webwaka-factory/webwaka-agent-factory/issues/43)
 
-[2] WebWaka Agent Factory, "TXQ-001 — Persistent Offline Transaction Queue", [https://github.com/webwakaagent1/webwaka-agent-factory/issues/37](https://github.com/webwakaagent1/webwaka-agent-factory/issues/37)
+[2] WebWaka Agent Factory, "TXQ-001 — Persistent Offline Transaction Queue", [https://github.com/webwaka-factory/webwaka-agent-factory/issues/37](https://github.com/webwaka-factory/webwaka-agent-factory/issues/37)
