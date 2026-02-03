@@ -290,7 +290,10 @@ jobs:
                       run_cmd = step.get('run', '')
 
                       # Check for dangerous patterns
-                      if 'curl | bash' in run_cmd or 'curl | sh' in run_cmd:
+                      # Split strings to avoid self-detection
+                      curl_bash = 'curl' + ' | ' + 'bash'
+                      curl_sh = 'curl' + ' | ' + 'sh'
+                      if curl_bash in run_cmd or curl_sh in run_cmd:
                           print(
                               f'⚠️ {filename}/{job_name}: '
                               f'Contains curl pipe to shell'
