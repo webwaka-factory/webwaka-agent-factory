@@ -1,0 +1,8 @@
+{
+  "name": "@webwaka/offline-auth",
+  "version": "1.0.0",
+  "description": "Offline session continuity and authentication",
+  "main": "OfflineAuthComplete.ts",
+  "author": "webwakaagent1",
+  "license": "MIT"
+}
