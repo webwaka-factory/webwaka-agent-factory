@@ -1,0 +1,16 @@
+{
+  "name": "@webwaka/conflict-metadata",
+  "version": "1.0.0",
+  "description": "Conflict detection metadata tracking",
+  "main": "index.ts",
+  "types": "index.ts",
+  "scripts": {
+    "test": "jest"
+  },
+  "keywords": ["conflict", "metadata", "sync", "offline-first"],
+  "author": "webwakaagent1",
+  "license": "MIT",
+  "dependencies": {
+    "@webwaka/transaction-queue": "^1.0.0"
+  }
+}
