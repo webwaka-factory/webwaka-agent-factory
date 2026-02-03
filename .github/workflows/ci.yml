@@ -146,7 +146,7 @@ jobs:
                   if 'name' not in data:
                       print('ERROR: Workflow missing name field')
                       sys.exit(1)
-                  if 'on' not in data:
+                  if 'on' not in data and True not in data:
                       print('ERROR: Workflow missing trigger (on) field')
                       sys.exit(1)
                   if 'jobs' not in data:
