@@ -25,7 +25,7 @@ Your interaction with the system is focused on a single state: `awaiting-founder
 
 Your primary queue is the list of issues with the `state: awaiting-founder-decision` label. These are tasks that the Task Intelligence Layer has fully prepared and are now ready for your strategic review.
 
-[**View Tasks Awaiting Your Decision**](https://github.com/webwakaagent1/webwaka-agent-factory/issues?q=is%3Aopen+is%3Aissue+label%3A%22state%3A+awaiting-founder-decision%22)
+[**View Tasks Awaiting Your Decision**](https://github.com/webwaka-factory/webwaka-agent-factory/issues?q=is%3Aopen+is%3Aissue+label%3A%22state%3A+awaiting-founder-decision%22)
 
 ### Step 2: Review the Proposal
 
@@ -56,7 +56,7 @@ This will close the issue and remove it from the active work queue.
 
 Occasionally, an agent may need your input to proceed. These tasks will be in the `state: needs-founder-clarification` state and will have you @-mentioned in a comment with specific questions.
 
-1.  **Find these tasks:** [View Tasks Needing Clarification](https://github.com/webwakaagent1/webwaka-agent-factory/issues?q=is%3Aopen+is%3Aissue+label%3A%22state%3A+needs-founder-clarification%22)
+1.  **Find these tasks:** [View Tasks Needing Clarification](https://github.com/webwaka-factory/webwaka-agent-factory/issues?q=is%3Aopen+is%3Aissue+label%3A%22state%3A+needs-founder-clarification%22)
 2.  **Provide your answer** in a comment.
 3.  The agent will then incorporate your feedback and move the task to `awaiting-founder-decision` for your final approval.
 
@@ -80,7 +80,7 @@ Every day, the system will automatically generate a **Daily Status Report** and 
 - A list of tasks that failed testing and need rework
 - A priority breakdown of all open tasks
 
-[**View All Reports**](https://github.com/webwakaagent1/webwaka-agent-factory/issues?q=is%3Aopen+is%3Aissue+label%3Areport)
+[**View All Reports**](https://github.com/webwaka-factory/webwaka-agent-factory/issues?q=is%3Aopen+is%3Aissue+label%3Areport)
 
 ### Searching and Filtering
 
