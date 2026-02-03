@@ -98,6 +98,6 @@ The transaction queue is designed to scale with the needs of the application. Ke
 
 **References**
 
-[1] WebWaka Agent Factory, "OFF-001 — Local Offline Data Store Abstraction", [https://github.com/webwakaagent1/webwaka-agent-factory/issues/34](https://github.com/webwakaagent1/webwaka-agent-factory/issues/34)
+[1] WebWaka Agent Factory, "OFF-001 — Local Offline Data Store Abstraction", [https://github.com/webwaka-factory/webwaka-agent-factory/issues/34](https://github.com/webwaka-factory/webwaka-agent-factory/issues/34)
 
-[2] WebWaka Agent Factory, "OFF-002 — Offline Data Encryption Layer", [https://github.com/webwakaagent1/webwaka-agent-factory/issues/35](https://github.com/webwakaagent1/webwaka-agent-factory/issues/35)
+[2] WebWaka Agent Factory, "OFF-002 — Offline Data Encryption Layer", [https://github.com/webwaka-factory/webwaka-agent-factory/issues/35](https://github.com/webwaka-factory/webwaka-agent-factory/issues/35)
