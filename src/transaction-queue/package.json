@@ -1,0 +1,32 @@
+{
+  "name": "@webwaka/transaction-queue",
+  "version": "1.0.0",
+  "description": "TXQ-001 — Persistent Offline Transaction Queue for WebWaka Platform",
+  "main": "index.ts",
+  "types": "index.ts",
+  "scripts": {
+    "test": "jest",
+    "test:coverage": "jest --coverage",
+    "test:watch": "jest --watch"
+  },
+  "keywords": [
+    "transaction-queue",
+    "offline-first",
+    "fifo",
+    "persistence",
+    "webwaka"
+  ],
+  "author": "webwakaagent1",
+  "license": "PROPRIETARY",
+  "peerDependencies": {
+    "@webwaka/storage-abstraction": "^1.0.0",
+    "@webwaka/encryption-layer": "^1.0.0"
+  },
+  "devDependencies": {
+    "@jest/globals": "^29.7.0",
+    "@types/jest": "^29.5.11",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
+    "typescript": "^5.3.3"
+  }
+}
